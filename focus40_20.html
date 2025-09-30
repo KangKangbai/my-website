@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>小时值学习法 · 40/20</title>
+<meta name="description" content="40分钟学习 + 20分钟休息 的极简番茄页面，自动循环，切换有提示音。" />
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#ffffff; --text:#0f172a; --muted:#64748b;
+    --brand:#0b57d0; --border:#e5e7eb; --shadow:0 10px 30px rgba(0,0,0,.06); --radius:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0b1020; --card:#0f172a; --text:#e5e7eb; --muted:#94a3b8; --border:#1f2937; --shadow:0 10px 30px rgba(0,0,0,.45); }
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"PingFang SC","Noto Sans SC",Arial;
+    background: radial-gradient(1200px 600px at 10% -10%, rgba(11,87,208,.08), transparent 60%), var(--bg);
+    color:var(--text); display:grid; place-items:center;
+  }
+  .wrap{
+    width:min(680px,92vw); background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:24px 22px; text-align:center;
+  }
+  .stage{
+    display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid var(--border);
+    border-radius:999px; font-weight:700;
+  }
+  .badge-study{ border-color:#bfdbfe; color:#1d4ed8; }
+  .badge-break{ border-color:#fde68a; color:#b45309; }
+  .timer{ font-weight:800; font-size:clamp(44px, 8vw, 76px); letter-spacing:1px; margin:14px 0 6px; }
+  .cycle{ color:var(--muted); font-size:14px; margin-bottom:18px; }
+  .progress{ height:12px; background:#eef2ff; border-radius:999px; overflow:hidden; border:1px solid var(--border); }
+  .bar{ height:100%; width:0%; background:linear-gradient(90deg, var(--brand), #7c3aed); transition:width .2s ease; }
+  .controls{ margin-top:18px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap; }
+  .btn{
+    appearance:none; border:1px solid var(--brand); background:var(--brand); color:#fff;
+    padding:10px 16px; border-radius:12px; font-weight:800; cursor:pointer; transition:.12s;
+  }
+  /* 让“开始”更显眼更好点 */
+  #btnStart{ font-size:18px; padding:14px 26px; border-radius:14px; }
+  .btn.ghost{ background:transparent; color:var(--text); border-color:var(--border); }
+  .btn:hover{ transform:translateY(-1px); }
+  footer{ margin-top:12px; color:var(--muted); font-size:12px }
+</style>
+</head>
+<body>
+  <main class="wrap" aria-label="40-20 学习计时器">
+    <div id="stage" class="stage badge-study" role="status" aria-live="polite">学习中</div>
+    <div id="time" class="timer" aria-label="倒计时">40:00</div>
+    <div class="cycle" id="cycleInfo">第 1 轮 · 学习</div>
+
+    <div class="progress" aria-label="本阶段进度">
+      <div id="bar" class="bar"></div>
+    </div>
+
+    <div class="controls">
+      <button id="btnStart" class="btn">开始</button>
+      <button id="btnReset" class="btn ghost" disabled>重置</button>
+    </div>
+
+    <footer>本地运行 · 切后台也会按真实时间推进 · 部分移动端需首次点击后才允许播放提示音</footer>
+  </main>
+
+<script>
+(() => {
+  // ===== 常量 =====
+  const STUDY_MIN = 40;
+  const BREAK_MIN = 20;
+
+  // ===== 状态 =====
+  let phase = 'study';           // 'study' | 'break'
+  let remaining = STUDY_MIN*60;  // seconds
+  let endAt = null;              // 目标时间戳（毫秒）
+  let running = false;
+  let cycle = 1;
+
+  // ===== UI =====
+  const elStage = document.getElementById('stage');
+  const elTime  = document.getElementById('time');
+  const elBar   = document.getElementById('bar');
+  const elCycle = document.getElementById('cycleInfo');
+  const btnStart= document.getElementById('btnStart');
+  const btnReset= document.getElementById('btnReset');
+
+  // ===== 声音（WebAudio）=====
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = null;
+  const unlockAudio = () => { if(AudioCtx && !audioCtx) audioCtx = new AudioCtx(); };
+  function beep(freq = 880, duration = 0.08, type = 'sine', gain = 0.05){
+    if(!audioCtx) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type; o.frequency.value = freq; g.gain.value = gain;
+    o.connect(g); g.connect(audioCtx.destination);
+    const t = audioCtx.currentTime; o.start(t); o.stop(t + duration);
+  }
+  ['click','keydown','touchstart'].forEach(ev => window.addEventListener(ev, unlockAudio, {once:true}));
+
+  // ===== 工具 =====
+  const fmt = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  const phaseSeconds = p => (p==='study'?STUDY_MIN:BREAK_MIN)*60;
+  const phaseLabel   = p => p==='study' ? '学习中' : '休息中';
+
+  function setPhase(p, playTone = true){
+    phase = p;
+    remaining = phaseSeconds(p);
+    endAt = Date.now() + remaining*1000;  // 用“目标时间”抗节流
+    elStage.textContent = phaseLabel(p);
+    elStage.className = 'stage ' + (p==='study' ? 'badge-study' : 'badge-break');
+    elCycle.textContent = `第 ${cycle} 轮 · ${p==='study' ? '学习' : '休息'}`;
+    if(playTone) beep();
+    updateUI();
+  }
+
+  function updateUI(){
+    elTime.textContent = fmt(remaining);
+    const total = phaseSeconds(phase);
+    elBar.style.width = Math.min(100, Math.max(0, (1 - remaining/total)*100)).toFixed(2) + '%';
+  }
+
+  // 用 rAF 驱动；即便后台暂停，回来会按 endAt 纠正到真实时间
+  function loop(){
+    if(!running) return;
+    const now = Date.now();
+    remaining = Math.max(0, Math.ceil((endAt - now)/1000));
+    updateUI();
+
+    if(remaining <= 0){
+      if(phase === 'study'){
+        setPhase('break');
+      }else{
+        cycle++; setPhase('study');
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function start(){
+    if(running) return;
+    running = true;
+    endAt = Date.now() + remaining*1000;
+    btnStart.disabled = true;
+    btnReset.disabled = false;
+    requestAnimationFrame(loop);
+  }
+
+  function reset(){
+    running = false;
+    cycle = 1;
+    setPhase('study', false);
+    btnStart.disabled = false;
+    btnReset.disabled = true;
+  }
+
+  // 事件
+  btnStart.addEventListener('click', () => { unlockAudio(); start(); });
+  btnReset.addEventListener('click', reset);
+  window.addEventListener('keydown', (e)=>{
+    if(e.key === ' '){ e.preventDefault(); if(!running) start(); }
+    if(e.key === 'r' || e.key === 'R'){ reset(); }
+  });
+
+  // 初始渲染
+  setPhase('study', false);
+})();
+</script>
+</body>
+</html>
