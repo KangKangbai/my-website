@@ -1,50 +1,35 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport"
-    content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>扫雷 · Mobile Luxe</title>
-  <meta name="description" content="极简、高级质感的手机端扫雷。长按标记，自动适配，支持难度切换与计时成绩保存。" />
+  <meta name="description" content="极简、高级质感的手机端扫雷。修复 iOS 首次长按放大问题；棋盘总是适配手机首屏显示。" />
   <style>
     :root {
       --bg: #0b0f16;
-      /* 深沉背景 */
       --ink: #e7e9ee;
-      /* 文字主色 */
       --muted: #94a3b8;
-      /* 次要文字 */
       --gold: #d6b36a;
-      /* 金色点缀 */
       --glass: rgba(255, 255, 255, .04);
-      /* 玻璃质感底 */
       --line: rgba(255, 255, 255, .08);
       --danger: #ff6b6b;
       --ok: #34d399;
 
-      /* 数字颜色（宝石感） */
-      --n1: #7aa2ff;
-      --n2: #9fe0a5;
-      --n3: #ff9cae;
-      --n4: #b39cfb;
-      --n5: #ffd27e;
-      --n6: #7de9e9;
-      --n7: #f9a8d4;
-      --n8: #cbd5e1;
+      /* 数字颜色 */
+      --n1: #7aa2ff; --n2: #9fe0a5; --n3: #ff9cae; --n4: #b39cfb;
+      --n5: #ffd27e; --n6: #7de9e9; --n7: #f9a8d4; --n8: #cbd5e1;
 
       --radius: 18px;
-      --cell-gap: 6px;
-      --board-pad: 10px;
-      /* 让边缘留白避免误触 */
+      --cell-gap: 6px;      /* JS 会动态调整 */
+      --board-pad: 10px;    /* 围边留白 */
+      --cs: 32px;           /* 单元格像素尺寸（JS 覆盖） */
     }
 
-    * {
-      box-sizing: border-box
-    }
+    * { box-sizing: border-box }
 
-    html,
-    body {
+    html, body {
       height: 100%;
       -webkit-text-size-adjust: 100%;
       touch-action: manipulation;
@@ -57,312 +42,116 @@
       color: var(--ink);
       font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, "Noto Sans CJK SC", sans-serif;
       -webkit-tap-highlight-color: transparent;
-    }
-
-    .app {
-      max-width: 520px;
-      margin: 0 auto;
-      padding: 16px 14px 28px;
-    }
-
-    /* 顶部栏 */
-    .top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 14px;
-      border: 1px solid var(--line);
-      border-radius: calc(var(--radius) + 4px);
-      background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .02));
-      backdrop-filter: blur(10px);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .06);
-    }
-
-    .brand {
-      letter-spacing: .5px;
-      font-weight: 600;
-    }
-
-    .brand b {
-      color: var(--gold);
-      font-weight: 700
-    }
-
-    .stats {
-      display: flex;
-      gap: 8px;
-      align-items: center
-    }
-
-    .chip {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: var(--glass);
-      font-variant-numeric: tabular-nums;
-      min-width: 92px;
-      justify-content: center
-    }
-
-    .chip .v {
-      font-weight: 700
-    }
-
-    .btn {
-      appearance: none;
-      border: 1px solid var(--gold);
-      color: var(--gold);
-      background: transparent;
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-weight: 600;
-      font-size: 16px
-    }
-
-    .btn:active {
-      transform: translateY(1px)
-    }
-
-    /* 控制区 */
-    .controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 14px 2px 16px
-    }
-
-    select {
-      flex: 1;
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: var(--glass);
-      color: var(--ink)
-    }
-
-    .toggle {
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      color: var(--ink);
-      background: var(--glass);
-      font-size: 16px
-    }
-
-    .toggle.active {
-      border-color: var(--gold);
-      color: var(--gold)
-    }
-
-    /* 棋盘 */
-    .board-wrap {
-      position: relative;
-      border-radius: var(--radius);
-      border: 1px solid var(--line);
-      padding: var(--board-pad);
-      background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .015));
-      box-shadow: 0 30px 80px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .05);
-    }
-
-    .board {
-      display: grid;
-      gap: var(--cell-gap);
-      touch-action: none;
-    }
-
-    .cell {
-      position: relative;
-      aspect-ratio: 1 / 1;
-      display: grid;
-      place-items: center;
-      font-weight: 700;
-      border-radius: 12px;
-      user-select: none;
+      user-select: none;             /* 避免长按选中文本触发放大/放大镜 */
       -webkit-user-select: none;
       -webkit-touch-callout: none;
-      cursor: pointer;
-      background: linear-gradient(180deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04));
-      border: 1px solid rgba(255, 255, 255, .18);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .12);
+    }
+
+    .app { max-width: 520px; margin: 0 auto; padding: 16px 14px 28px; }
+
+    /* 顶部栏 */
+    .top{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 14px; border:1px solid var(--line);
+      border-radius:calc(var(--radius) + 4px);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      backdrop-filter: blur(10px);
+      box-shadow:0 20px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .brand{ letter-spacing:.5px; font-weight:600; }
+    .brand b{ color:var(--gold); font-weight:700 }
+
+    .stats{ display:flex; gap:8px; align-items:center }
+    .chip{ display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--line);
+           border-radius:999px; background:var(--glass); font-variant-numeric:tabular-nums; min-width:92px; justify-content:center }
+    .chip .v{ font-weight:700 }
+
+    .btn{ appearance:none; border:1px solid var(--gold); color:var(--gold); background:transparent; padding:8px 12px;
+          border-radius:999px; font-weight:600; font-size:16px }
+    .btn:active{ transform: translateY(1px) }
+
+    /* 控制区 */
+    .controls{ display:flex; align-items:center; gap:10px; margin:14px 2px 16px }
+    select{ flex:1; padding:10px 14px; border-radius:999px; border:1px solid var(--line); background:var(--glass); color:var(--ink) }
+    .toggle{ padding:10px 14px; border-radius:999px; border:1px solid var(--line); color:var(--ink); background:var(--glass); font-size:16px }
+    .toggle.active{ border-color:var(--gold); color:var(--gold) }
+
+    /* 棋盘容器 */
+    .board-wrap{
+      position:relative; border-radius:var(--radius); border:1px solid var(--line); padding:var(--board-pad);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015));
+      box-shadow:0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+    }
+
+    /* 棋盘：使用固定像素格，确保横向按列、纵向按行都能贴合首屏 */
+    .board{
+      display:grid;
+      gap: var(--cell-gap);
+      touch-action: none; /* 阻断双击/捏合缩放手势 */
+      grid-template-columns: repeat(10, var(--cs)); /* 初始，JS 会覆盖 */
+    }
+
+    .cell{
+      position:relative;
+      width: var(--cs);
+      height: var(--cs);
+      display:grid; place-items:center;
+      font-weight:700; border-radius:12px;
+      cursor:pointer;
+      background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:0 8px 16px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.12);
       transition: background .15s ease, box-shadow .15s ease, transform .08s ease;
+      -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
     }
+    .cell:active{ transform: translateY(1px) }
 
-    .cell:active {
-      transform: translateY(1px)
-    }
-
-    .cell.revealed {
-      background: linear-gradient(180deg, rgba(5, 8, 14, .92), rgba(10, 14, 22, .92));
-      border-color: rgba(255, 255, 255, .06);
-      box-shadow: inset 0 2px 10px rgba(0, 0, 0, .65), inset 0 0 0 1px rgba(255, 255, 255, .03);
+    .cell.revealed{
+      background:linear-gradient(180deg, rgba(5,8,14,.92), rgba(10,14,22,.92));
+      border-color:rgba(255,255,255,.06);
+      box-shadow: inset 0 2px 10px rgba(0,0,0,.65), inset 0 0 0 1px rgba(255,255,255,.03);
       transform: translateY(1px);
-      cursor: default;
+      cursor:default;
     }
 
-    .cell.flag::after {
-      content: "🚩";
-      font-size: clamp(16px, 3.6vw, 24px);
+    .cell.flag::after{ content:"🚩"; font-size: calc(var(--cs) * .56); line-height:1; }
+    .cell.mine.revealed::after{ content:"💣"; font-size: calc(var(--cs) * .56); line-height:1; }
+
+    .cell .num{ font-size: calc(var(--cs) * .48); line-height:1; filter: drop-shadow(0 1px 0 rgba(0,0,0,.25)); }
+    .cell.n1 .num{ color:var(--n1) } .cell.n2 .num{ color:var(--n2) } .cell.n3 .num{ color:var(--n3) }
+    .cell.n4 .num{ color:var(--n4) } .cell.n5 .num{ color:var(--n5) } .cell.n6 .num{ color:var(--n6) }
+    .cell.n7 .num{ color:var(--n7) } .cell.n8 .num{ color:var(--n8) }
+
+    .cell.wrong.flag::after{ content:"✖"; color:var(--danger) }
+
+    .cell.revealed::before{
+      content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+      background: radial-gradient(rgba(255,255,255,.03) 1px, transparent 1px) 0 0/8px 8px;
     }
 
-    .cell.mine.revealed::after {
-      content: "💣";
-      font-size: clamp(16px, 3.8vw, 24px);
-    }
+    .banner{ margin-top:12px; padding:10px 12px; border:1px solid var(--line); border-radius:999px; text-align:center; color:var(--muted); }
+    .banner.win{ color:var(--ok) } .banner.lose{ color:var(--danger) }
 
-    .cell .num {
-      font-size: clamp(14px, 3.6vw, 22px);
-      line-height: 1;
-      filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .25));
-    }
+    .tiny{ font-size:12px; color:var(--muted); margin-top:8px; text-align:center }
+    .tiny a{ color:var(--muted); text-decoration: underline dotted }
+    .gold{ color:var(--gold) }
 
-    .cell.n1 .num {
-      color: var(--n1)
-    }
+    @media (max-width: 380px){ .chip{ min-width:86px } }
 
-    .cell.n2 .num {
-      color: var(--n2)
-    }
-
-    .cell.n3 .num {
-      color: var(--n3)
-    }
-
-    .cell.n4 .num {
-      color: var(--n4)
-    }
-
-    .cell.n5 .num {
-      color: var(--n5)
-    }
-
-    .cell.n6 .num {
-      color: var(--n6)
-    }
-
-    .cell.n7 .num {
-      color: var(--n7)
-    }
-
-    .cell.n8 .num {
-      color: var(--n8)
-    }
-
-    .cell.wrong.flag::after {
-      content: "✖";
-      color: var(--danger)
-    }
-
-    .banner {
-      margin-top: 12px;
-      padding: 10px 12px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      text-align: center;
-      color: var(--muted);
-    }
-
-    .cell.revealed::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      border-radius: inherit;
-      background: radial-gradient(rgba(255, 255, 255, .03) 1px, transparent 1px) 0 0/8px 8px;
-    }
-
-    .banner.win {
-      color: var(--ok)
-    }
-
-    .banner.lose {
-      color: var(--danger)
-    }
-
-    /* 细节 */
-    .tiny {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 8px;
-      text-align: center
-    }
-
-    .tiny a {
-      color: var(--muted);
-      text-decoration: underline dotted
-    }
-
-    .gold {
-      color: var(--gold)
-    }
-
-    @media (max-width: 380px) {
-      .chip {
-        min-width: 86px
-      }
-    }
-
-    /* 自定义下拉选择（与整体风格统一） */
-    .select {
-      position: relative;
-      flex: 1;
-      padding: 10px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: var(--glass);
-      color: var(--ink);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      font-size: 16px
-    }
-
-    .select .caret {
-      opacity: .7
-    }
-
-    .select-menu {
-      position: absolute;
-      top: calc(100% + 8px);
-      left: 0;
-      right: 0;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .02));
-      box-shadow: 0 20px 50px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .06);
-      padding: 8px;
-      display: none;
-      z-index: 20
-    }
-
-    .select.open .select-menu {
-      display: block
-    }
-
-    .select-menu li {
-      list-style: none;
-      padding: 10px 12px;
-      border-radius: 12px;
-      cursor: pointer
-    }
-
-    .select-menu li[aria-selected="true"] {
-      outline: 1px solid var(--gold);
-      color: var(--gold)
-    }
+    /* 自定义下拉选择 */
+    .select{ position:relative; flex:1; padding:10px 14px; border-radius:999px; border:1px solid var(--line); background:var(--glass); color:var(--ink); display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:16px }
+    .select .caret{ opacity:.7 }
+    .select-menu{ position:absolute; top:calc(100% + 8px); left:0; right:0; border:1px solid var(--line); border-radius:16px;
+                  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); box-shadow:0 20px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
+                  padding:8px; display:none; z-index:20 }
+    .select.open .select-menu{ display:block }
+    .select-menu li{ list-style:none; padding:10px 12px; border-radius:12px; cursor:pointer }
+    .select-menu li[aria-selected="true"]{ outline:1px solid var(--gold); color:var(--gold) }
 
     /* 交互元素避免触发浏览器缩放手势 */
-    .btn,
-    .toggle,
-    .select {
-      touch-action: manipulation;
-    }
+    .btn, .toggle, .select { touch-action: manipulation; }
   </style>
 </head>
-
 <body>
   <div class="app">
     <div class="top">
@@ -375,12 +164,9 @@
     </div>
 
     <div class="controls">
-      <div id="levelSel" class="select" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false"
-        title="难度">
+      <div id="levelSel" class="select" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false" title="难度">
         <span id="levelVal" class="select-value">标准（10×14 / 30雷）</span>
-        <svg class="caret" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-          <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-        </svg>
+        <svg class="caret" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
         <ul id="levelMenu" class="select-menu" role="listbox">
           <li role="option" data-value="easy">简单（8×10 / 10雷）</li>
           <li role="option" data-value="med" aria-selected="true">标准（10×14 / 30雷）</li>
@@ -399,285 +185,227 @@
   </div>
 
   <script>
-    (function () {
-      const DIFF = {
-        easy: { rows: 8, cols: 10, mines: 10 },
-        med: { rows: 10, cols: 14, mines: 30 },
-        hard: { rows: 12, cols: 18, mines: 60 },
-      };
+  (function(){
+    const DIFF = { easy:{rows:8, cols:10, mines:10}, med:{rows:10, cols:14, mines:30}, hard:{rows:12, cols:18, mines:60} };
 
-      const qs = s => document.querySelector(s);
-      const boardEl = qs('#board');
-      const timeEl = qs('#time');
-      const remainEl = qs('#remain');
-      const resetBtn = qs('#reset');
-      const levelSel = qs('#levelSel');
-      const levelMenu = qs('#levelMenu');
-      const levelVal = qs('#levelVal');
-      let currentLevel = 'med';
-      function getLevel() { return currentLevel; }
-      function setLevel(val) {
-        currentLevel = val;
-        const opt = levelMenu.querySelector(`[data-value="${val}"]`);
-        levelMenu.querySelectorAll('[role=option]').forEach(li => li.setAttribute('aria-selected', li.dataset.value === val ? 'true' : 'false'));
-        levelVal.textContent = opt ? opt.textContent.trim() : val;
-      }
-      const flagBtn = qs('#flagMode');
-      const bannerEl = qs('#banner');
+    const qs = s => document.querySelector(s);
+    const boardEl = qs('#board');
+    const timeEl = qs('#time');
+    const remainEl = qs('#remain');
+    const resetBtn = qs('#reset');
+    const levelSel = qs('#levelSel');
+    const levelMenu = qs('#levelMenu');
+    const levelVal = qs('#levelVal');
+    const flagBtn = qs('#flagMode');
+    const bannerEl = qs('#banner');
+    const wrapEl = document.querySelector('.board-wrap');
 
-      let rows, cols, mines;
-      let grid = [];
-      let started = false, ended = false;
-      let flags = 0, opened = 0;
-      let startAt = 0, elapsedFixed = 0, timerHandle = null;
-      let flagMode = false;
+    let currentLevel = 'med';
+    function getLevel(){ return currentLevel }
+    function setLevel(val){
+      currentLevel = val;
+      const opt = levelMenu.querySelector(`[data-value="${val}"]`);
+      levelMenu.querySelectorAll('[role=option]').forEach(li => li.setAttribute('aria-selected', li.dataset.value === val ? 'true' : 'false'));
+      levelVal.textContent = opt ? opt.textContent.trim() : val;
+    }
 
-      const idx = (r, c) => r * cols + c;
-      const inb = (r, c) => r >= 0 && r < rows && c >= 0 && c < cols;
+    let rows, cols, mines;
+    let grid = [];
+    let started = false, ended = false;
+    let flags = 0, opened = 0;
+    let startAt = 0, elapsedFixed = 0, timerHandle = null;
+    let flagMode = false;
 
-      function saveBest(t) {
-        const key = `ms_best_${rows}x${cols}_${mines}`;
-        const best = +(localStorage.getItem(key) || 0);
-        if (!best || t < best) { localStorage.setItem(key, t); }
-      }
+    const idx = (r,c) => r*cols + c;
+    const inb = (r,c) => r>=0 && r<rows && c>=0 && c<cols;
 
-      function fmt(t) { return String(Math.min(999, Math.floor(t / 1000))).padStart(3, '0'); }
-      function updateTime() {
-        const now = Date.now();
-        const t = started ? (elapsedFixed + (ended ? 0 : (now - startAt))) : 0;
-        timeEl.textContent = fmt(t);
-      }
-      function startTimer() {
-        startAt = Date.now(); started = true; ended = false;
-        if (timerHandle) clearInterval(timerHandle);
-        timerHandle = setInterval(updateTime, 250);
-      }
-      function stopTimer() { ended = true; elapsedFixed += Date.now() - startAt; updateTime(); clearInterval(timerHandle); timerHandle = null; }
-      function resetTimer() { started = false; ended = false; elapsedFixed = 0; if (timerHandle) clearInterval(timerHandle); timerHandle = null; updateTime(); }
+    function saveBest(t){
+      const key = `ms_best_${rows}x${cols}_${mines}`;
+      const best = +(localStorage.getItem(key) || 0);
+      if(!best || t < best){ localStorage.setItem(key, t); }
+    }
 
-      function vibe(ms) { if (navigator.vibrate) try { navigator.vibrate(ms); } catch (_) { } }
+    function fmt(t){ return String(Math.min(999, Math.floor(t/1000))).padStart(3, '0'); }
+    function updateTime(){
+      const now = Date.now();
+      const t = started ? (elapsedFixed + (ended ? 0 : (now - startAt))) : 0;
+      timeEl.textContent = fmt(t);
+    }
+    function startTimer(){ startAt = Date.now(); started = true; ended = false; if(timerHandle) clearInterval(timerHandle); timerHandle = setInterval(updateTime, 250); }
+    function stopTimer(){ ended = true; elapsedFixed += Date.now() - startAt; updateTime(); clearInterval(timerHandle); timerHandle = null; }
+    function resetTimer(){ started = false; ended = false; elapsedFixed = 0; if(timerHandle) clearInterval(timerHandle); timerHandle = null; updateTime(); }
 
-      function beep(type = "tap") {
-        // 轻量 WebAudio 哔声（不依赖音频文件）
-        try {
-          const ctx = new (window.AudioContext || window.webkitAudioContext)();
-          const o = ctx.createOscillator();
-          const g = ctx.createGain();
-          o.type = type === "fail" ? "square" : "sine";
-          o.frequency.value = type === "flag" ? 740 : (type === "success" ? 880 : (type === "fail" ? 220 : 660));
-          g.gain.setValueAtTime(0.001, ctx.currentTime);
-          g.gain.exponentialRampToValueAtTime(0.06, ctx.currentTime + 0.01);
-          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-          o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.13);
-          setTimeout(() => ctx.close && ctx.close(), 180);
-        } catch (e) { }
-      }
+    function vibe(ms){ if(navigator.vibrate) try{ navigator.vibrate(ms) }catch(_){} }
+    function beep(type="tap"){ try{ const ctx = new (window.AudioContext||window.webkitAudioContext)(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.type = type==="fail"?"square":"sine"; o.frequency.value = type==="flag"?740:(type==="success"?880:(type==="fail"?220:660)); g.gain.setValueAtTime(0.001, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.06, ctx.currentTime+0.01); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.12); o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.13); setTimeout(()=>ctx.close&&ctx.close(),180);}catch(e){} }
 
-      function neighbors(r, c) {
-        const ns = []; for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
-          if (dr || dc) { const nr = r + dr, nc = c + dc; if (inb(nr, nc)) ns.push([nr, nc]); }
-        } return ns;
-      }
+    function neighbors(r,c){ const ns=[]; for(let dr=-1; dr<=1; dr++) for(let dc=-1; dc<=1; dc++){ if(dr||dc){ const nr=r+dr, nc=c+dc; if(inb(nr,nc)) ns.push([nr,nc]); } } return ns; }
+    function countMines(r,c){ let n=0; for(const [nr,nc] of neighbors(r,c)) if(grid[idx(nr,nc)].mine) n++; return n; }
 
-      function countMines(r, c) {
-        let n = 0; for (const [nr, nc] of neighbors(r, c)) if (grid[idx(nr, nc)].mine) n++; return n;
-      }
+    function plantMines(safeR, safeC){
+      const forbid = new Set([idx(safeR,safeC), ...neighbors(safeR,safeC).map(([r,c])=>idx(r,c))]);
+      const bag = []; for(let i=0;i<rows*cols;i++) if(!forbid.has(i)) bag.push(i);
+      for(let i=bag.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [bag[i],bag[j]]=[bag[j],bag[i]]; }
+      const picks = bag.slice(0, mines);
+      for(const k of picks) grid[k].mine = true;
+      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) grid[idx(r,c)].n = countMines(r,c);
+    }
 
-      function plantMines(safeR, safeC) {
-        // 简单洗牌布雷，保证首次点击位置及其邻域安全
-        const forbid = new Set([idx(safeR, safeC), ...neighbors(safeR, safeC).map(([r, c]) => idx(r, c))]);
-        const bag = []; for (let i = 0; i < rows * cols; i++) if (!forbid.has(i)) bag.push(i);
-        for (let i = bag.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0;[bag[i], bag[j]] = [bag[j], bag[i]]; }
-        const picks = bag.slice(0, mines);
-        for (const k of picks) grid[k].mine = true;
-        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) grid[idx(r, c)].n = countMines(r, c);
-      }
-
-      function renderBoard() {
-        boardEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-        boardEl.innerHTML = '';
-        const frag = document.createDocumentFragment();
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            const d = grid[idx(r, c)];
-            const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.setAttribute('role', 'gridcell');
-            cell.dataset.r = r; cell.dataset.c = c;
-            frag.appendChild(cell);
-          }
+    function renderBoard(){
+      boardEl.style.gridTemplateColumns = `repeat(${cols}, var(--cs))`;
+      boardEl.innerHTML = '';
+      const frag = document.createDocumentFragment();
+      for(let r=0;r<rows;r++){
+        for(let c=0;c<cols;c++){
+          const cell = document.createElement('div');
+          cell.className='cell';
+          cell.setAttribute('role','gridcell');
+          cell.dataset.r=r; cell.dataset.c=c;
+          frag.appendChild(cell);
         }
-        boardEl.appendChild(frag);
       }
+      boardEl.appendChild(frag);
+    }
 
-      function paintCell(r, c) {
-        const d = grid[idx(r, c)];
-        const el = cellEl(r, c);
-        el.classList.toggle('revealed', d.open);
-        el.classList.toggle('flag', d.flag);
-        el.classList.toggle('mine', d.mine);
-        if (d.open && !d.mine) {
-          el.textContent = '';
-          if (d.n > 0) {
-            const s = document.createElement('span'); s.className = 'num'; s.textContent = d.n;
-            el.appendChild(s); el.classList.add('n' + d.n);
-          }
-        } else if (!d.open) { el.textContent = ''; }
-      }
+    function paintCell(r,c){
+      const d = grid[idx(r,c)]; const el = cellEl(r,c);
+      el.classList.toggle('revealed', d.open);
+      el.classList.toggle('flag', d.flag);
+      el.classList.toggle('mine', d.mine);
+      if(d.open && !d.mine){
+        el.textContent='';
+        if(d.n>0){ const s=document.createElement('span'); s.className='num'; s.textContent=d.n; el.appendChild(s); el.classList.add('n'+d.n); }
+      } else if(!d.open){ el.textContent=''; }
+    }
 
-      function cellEl(r, c) { return boardEl.children[idx(r, c)]; }
+    function cellEl(r,c){ return boardEl.children[idx(r,c)] }
 
-      function reveal(r, c) {
-        const d = grid[idx(r, c)]; if (d.open || d.flag || ended) return;
-        if (!started) { plantMines(r, c); startTimer(); }
-        d.open = true; opened++; paintCell(r, c);
-        if (d.mine) { // 爆雷
-          endGame(false, r, c);
-          return;
-        }
-        if (d.n === 0) { // 泛洪展开
-          const q = [[r, c]]; const seen = new Set([idx(r, c)]);
-          while (q.length) {
-            const [cr, cc] = q.shift();
-            for (const [nr, nc] of neighbors(cr, cc)) {
-              const di = grid[idx(nr, nc)]; const key = idx(nr, nc);
-              if (!seen.has(key) && !di.open && !di.flag && !di.mine) {
-                di.open = true; opened++; paintCell(nr, nc);
-                if (di.n === 0) { q.push([nr, nc]); seen.add(key); }
-              }
+    function reveal(r,c){
+      const d = grid[idx(r,c)]; if(d.open || d.flag || ended) return;
+      if(!started){ plantMines(r,c); startTimer(); }
+      d.open=true; opened++; paintCell(r,c);
+      if(d.mine){ endGame(false, r, c); return; }
+      if(d.n===0){
+        const q=[[r,c]]; const seen = new Set([idx(r,c)]);
+        while(q.length){ const [cr,cc] = q.shift();
+          for(const [nr,nc] of neighbors(cr,cc)){
+            const di = grid[idx(nr,nc)], key = idx(nr,nc);
+            if(!seen.has(key) && !di.open && !di.flag && !di.mine){
+              di.open=true; opened++; paintCell(nr,nc);
+              if(di.n===0){ q.push([nr,nc]); seen.add(key); }
             }
           }
         }
-        checkWin();
       }
+      checkWin();
+    }
 
-      function toggleFlag(r, c) {
-        const d = grid[idx(r, c)]; if (d.open || ended) return;
-        d.flag = !d.flag; flags += d.flag ? 1 : -1; remainEl.textContent = String(mines - flags).padStart(3, '0');
-        paintCell(r, c); vibe(25); beep('flag');
+    function toggleFlag(r,c){ const d=grid[idx(r,c)]; if(d.open || ended) return; d.flag=!d.flag; flags += d.flag?1:-1; remainEl.textContent = String(mines - flags).padStart(3,'0'); paintCell(r,c); vibe(25); beep('flag'); }
+
+    function endGame(win, hitR=-1, hitC=-1){
+      stopTimer(); ended=true;
+      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+        const d=grid[idx(r,c)];
+        if(d.mine && !d.open){ d.open=true; paintCell(r,c); }
+        if(!d.mine && d.flag){ const el = cellEl(r,c); el.classList.add('wrong'); }
       }
+      const t = elapsedFixed;
+      bannerEl.hidden=false;
+      if(win){ bannerEl.className='banner win'; bannerEl.textContent=`✓ 清盘成功！用时 ${Math.floor(t/1000)}s`; saveBest(t); vibe([40,60,40]); beep('success'); }
+      else{ bannerEl.className='banner lose'; bannerEl.textContent='✗ 爆雷了，再来！'; vibe([120,80,120]); beep('fail'); if(hitR>=0){ const el = cellEl(hitR, hitC); el.style.outline='2px solid var(--danger)'; el.style.outlineOffset='-2px'; } }
+    }
 
-      function endGame(win, hitR = -1, hitC = -1) {
-        stopTimer(); ended = true;
-        // 展示所有雷 & 错误标记
-        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-          const d = grid[idx(r, c)];
-          if (d.mine && !d.open) { d.open = true; paintCell(r, c); }
-          if (!d.mine && d.flag) { const el = cellEl(r, c); el.classList.add('wrong'); }
-        }
-        const t = elapsedFixed; // 已在 stopTimer 里固定
-        bannerEl.hidden = false;
-        if (win) {
-          bannerEl.className = 'banner win'; bannerEl.textContent = `✓ 清盘成功！用时 ${Math.floor(t / 1000)}s`;
-          saveBest(t);
-          vibe([40, 60, 40]); beep('success');
-        } else {
-          bannerEl.className = 'banner lose'; bannerEl.textContent = `✗ 爆雷了，再来！`;
-          vibe([120, 80, 120]); beep('fail');
-          if (hitR >= 0) { const el = cellEl(hitR, hitC); el.style.outline = '2px solid var(--danger)'; el.style.outlineOffset = '-2px'; }
-        }
+    function checkWin(){ const totalSafe = rows*cols - mines; if(opened >= totalSafe) endGame(true); }
+
+    function bindEvents(){
+      let pressTimer=null; let pressedCell=null;
+      function clearPress(){ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } pressedCell=null; }
+
+      function onPointerDown(ev){
+        // 关键修复：阻断触摸默认行为，避免 iOS 首次长按触发视觉缩放/放大
+        if(ev.pointerType === 'touch'){ ev.preventDefault(); }
+        const target = ev.target.closest('.cell'); if(!target) return;
+        const r=+target.dataset.r, c=+target.dataset.c; pressedCell={r,c};
+        if(flagMode){ toggleFlag(r,c); return; }
+        pressTimer = setTimeout(()=>{ if(pressedCell){ toggleFlag(r,c); clearPress(); } }, 420);
       }
-
-      function checkWin() {
-        const totalSafe = rows * cols - mines;
-        if (opened >= totalSafe) { endGame(true); }
+      function onPointerUp(ev){
+        if(ev.pointerType === 'touch'){ ev.preventDefault(); }
+        const target = ev.target.closest('.cell'); if(!target){ clearPress(); return; }
+        const r=+target.dataset.r, c=+target.dataset.c;
+        if(pressTimer){ clearPress(); reveal(r,c); beep('tap'); }
       }
+      function onPointerCancel(){ clearPress(); }
 
-      function bindEvents() {
-        let pressTimer = null; let pressedCell = null;
+      boardEl.addEventListener('pointerdown', onPointerDown, { passive:false });
+      boardEl.addEventListener('pointerup', onPointerUp, { passive:false });
+      boardEl.addEventListener('pointerleave', onPointerCancel);
+      boardEl.addEventListener('pointercancel', onPointerCancel);
 
-        function clearPress() { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } pressedCell = null; }
+      // 兜底：禁止双击放大、长按系统菜单
+      boardEl.addEventListener('dblclick', e => e.preventDefault());
+      document.addEventListener('contextmenu', e => e.preventDefault());
 
-        function onPointerDown(ev) {
-          const target = ev.target.closest('.cell'); if (!target) return;
-          const r = +target.dataset.r, c = +target.dataset.c;
-          pressedCell = { r, c };
-          if (flagMode) { toggleFlag(r, c); return; }
-          // 长按 => 插旗
-          pressTimer = setTimeout(() => { if (pressedCell) { toggleFlag(r, c); clearPress(); } }, 420);
-        }
-        function onPointerUp(ev) {
-          const target = ev.target.closest('.cell');
-          if (!target) { clearPress(); return; }
-          const r = +target.dataset.r, c = +target.dataset.c;
-          if (pressTimer) { // 短按 => 打开
-            clearPress(); reveal(r, c); beep('tap');
-          } // 否则长按已处理
-        }
-        function onPointerCancel() { clearPress(); }
+      resetBtn.addEventListener('click', ()=>{ init(getLevel()); });
+      setupSelect();
+      flagBtn.addEventListener('click', ()=>{ flagMode=!flagMode; flagBtn.classList.toggle('active', flagMode); vibe(20); });
 
-        boardEl.addEventListener('pointerdown', onPointerDown);
-        boardEl.addEventListener('pointerup', onPointerUp);
-        boardEl.addEventListener('pointerleave', onPointerCancel);
-        boardEl.addEventListener('pointercancel', onPointerCancel);
+      // 尺寸变化自适应
+      window.addEventListener('resize', ()=>{ autoCellGap(); fitBoard(); }, { passive:true });
 
-        // 禁止双击放大
-        boardEl.addEventListener('dblclick', e => e.preventDefault());
+      // 老机型兜底：双击节流
+      let lastTouchEnd=0; document.addEventListener('touchend', function(e){ const now=Date.now(); if(now-lastTouchEnd<=300){ e.preventDefault(); } lastTouchEnd=now; }, { passive:false });
+      ['gesturestart','gesturechange','gestureend'].forEach(evt=>{ document.addEventListener(evt, e=>e.preventDefault()); });
+      // 阻止棋盘上的默认触摸手势（确保所有场景生效）
+      boardEl.addEventListener('touchstart', e=>e.preventDefault(), { passive:false });
+    }
 
-        // 避免长按弹出系统菜单
-        document.addEventListener('contextmenu', e => e.preventDefault());
+    function setupSelect(){
+      function open(b){ levelSel.classList.toggle('open', b); levelSel.setAttribute('aria-expanded', b); }
+      levelSel.addEventListener('click', ()=>{ open(!levelSel.classList.contains('open')); });
+      levelMenu.addEventListener('click', (e)=>{ const li=e.target.closest('li[role=option]'); if(!li) return; setLevel(li.dataset.value); open(false); init(getLevel()); });
+      document.addEventListener('click', (e)=>{ if(!levelSel.contains(e.target)) open(false); });
+      levelSel.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(!levelSel.classList.contains('open')); } if(e.key==='Escape'){ open(false); } });
+    }
 
-        resetBtn.addEventListener('click', () => { init(getLevel()); });
-        setupSelect();
-        flagBtn.addEventListener('click', () => { flagMode = !flagMode; flagBtn.classList.toggle('active', flagMode); vibe(20); });
+    function autoCellGap(){
+      // 基于容器宽度估算间距
+      const w = boardEl.clientWidth || wrapEl.clientWidth;
+      const g = Math.max(4, Math.min(8, Math.round(w / Math.max(8, cols) / 12)));
+      boardEl.style.gap = g + 'px';
+      document.documentElement.style.setProperty('--cell-gap', g + 'px');
+    }
 
-        // 适配尺寸变化（纵横切换）
-        window.addEventListener('resize', autoCellGap, { passive: true });
+    function fitBoard(){
+      // 计算单元格像素尺寸：同时满足宽和高不溢出首屏
+      const rect = wrapEl.getBoundingClientRect();
+      const computed = getComputedStyle(wrapEl);
+      const padY = parseFloat(computed.paddingTop) + parseFloat(computed.paddingBottom);
+      const gap = parseFloat(getComputedStyle(boardEl).columnGap || getComputedStyle(boardEl).gap) || 6;
 
-        // 防缩放（iOS 双击/捏合 + 捏合手势）
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function (e) {
-          const now = Date.now();
-          if (now - lastTouchEnd <= 300) { e.preventDefault(); }
-          lastTouchEnd = now;
-        }, { passive: false });
-        ['gesturestart', 'gesturechange', 'gestureend'].forEach(evt => {
-          document.addEventListener(evt, e => e.preventDefault());
-        });
-        // 避免在棋盘区域触发浏览器默认手势
-        boardEl.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
-      }
+      const availWidth = wrapEl.clientWidth; // 已含左右 padding
+      const availHeight = Math.max(220, window.innerHeight - rect.top - 24); // 24px 底部余量
 
-      function setupSelect() {
-        function open(b) { levelSel.classList.toggle('open', b); levelSel.setAttribute('aria-expanded', b); }
-        levelSel.addEventListener('click', (e) => {
-          const isOpen = levelSel.classList.contains('open');
-          open(!isOpen);
-        });
-        levelMenu.addEventListener('click', (e) => {
-          const li = e.target.closest('li[role=option]');
-          if (!li) return;
-          setLevel(li.dataset.value);
-          open(false);
-          init(getLevel());
-        });
-        document.addEventListener('click', (e) => { if (!levelSel.contains(e.target)) open(false); });
-        levelSel.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const isOpen = levelSel.classList.contains('open'); open(!isOpen); }
-          if (e.key === 'Escape') { open(false); }
-        });
-      }
+      const sizeW = (availWidth - gap*(cols-1)) / cols;
+      const sizeH = (availHeight - padY - gap*(rows-1)) / rows;
+      const cs = Math.max(22, Math.floor(Math.min(sizeW, sizeH))); // 最小 22px，保证可点中
 
-      function autoCellGap() {
-        const w = boardEl.clientWidth; // 基于容器宽度估算间距视觉感
-        const g = Math.max(4, Math.min(8, Math.round(w / cols / 12)));
-        boardEl.style.gap = g + 'px';
-      }
+      boardEl.style.setProperty('--cs', cs + 'px');
+      boardEl.style.gridTemplateColumns = `repeat(${cols}, var(--cs))`;
+    }
 
-      function init(level = 'med') {
-        ({ rows, cols, mines } = DIFF[level] || DIFF.med);
-        grid = Array.from({ length: rows * cols }, () => ({ mine: false, n: 0, open: false, flag: false }));
-        flags = 0; opened = 0; flagMode = false; flagBtn.classList.remove('active');
-        remainEl.textContent = String(mines - flags).padStart(3, '0');
-        bannerEl.hidden = true; bannerEl.textContent = ''; bannerEl.className = 'banner';
-        renderBoard(); resetTimer(); updateTime(); autoCellGap();
-      }
+    function init(level='med'){
+      ({rows, cols, mines} = DIFF[level] || DIFF.med);
+      grid = Array.from({length: rows*cols}, ()=>({mine:false, n:0, open:false, flag:false}));
+      flags=0; opened=0; flagMode=false; flagBtn.classList.remove('active');
+      remainEl.textContent = String(mines - flags).padStart(3,'0');
+      bannerEl.hidden=true; bannerEl.textContent=''; bannerEl.className='banner';
+      renderBoard(); resetTimer(); updateTime(); autoCellGap(); fitBoard();
+    }
 
-      bindEvents();
-      setLevel(getLevel());
-      init(getLevel());
-    })();
+    bindEvents();
+    setLevel(getLevel());
+    init(getLevel());
+  })();
   </script>
 </body>
-
 </html>
