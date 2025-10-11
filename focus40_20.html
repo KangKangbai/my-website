@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>小时值学习法 · 40/20</title>
+<title>小时制学习法 · 40/20</title>
 <meta name="description" content="40分钟学习 + 20分钟休息 的极简番茄页面，自动循环，切换有提示音。" />
 <style>
   :root{
@@ -39,7 +39,6 @@
     appearance:none; border:1px solid var(--brand); background:var(--brand); color:#fff;
     padding:10px 16px; border-radius:12px; font-weight:800; cursor:pointer; transition:.12s;
   }
-  /* 让“开始”更显眼更好点 */
   #btnStart{ font-size:18px; padding:14px 26px; border-radius:14px; }
   .btn.ghost{ background:transparent; color:var(--text); border-color:var(--border); }
   .btn:hover{ transform:translateY(-1px); }
@@ -69,13 +68,20 @@
   // ===== 常量 =====
   const STUDY_MIN = 40;
   const BREAK_MIN = 20;
+  const STUDY_MS  = STUDY_MIN * 60 * 1000;
+  const BREAK_MS  = BREAK_MIN * 60 * 1000;
 
   // ===== 状态 =====
   let phase = 'study';           // 'study' | 'break'
-  let remaining = STUDY_MIN*60;  // seconds
-  let endAt = null;              // 目标时间戳（毫秒）
+  let remaining = STUDY_MIN*60;  // seconds（仅用于 UI 展示）
+  let endAt = null;              // 当前阶段的目标时间戳（毫秒）
   let running = false;
   let cycle = 1;
+
+  // 定时器句柄
+  let deadlineTimer = null;      // 在 endAt 到达时触发切换
+  let heartbeat = null;          // 每秒一次，后台也会被动触发，用于“追赶进度”
+  let rafId = null;              // 前台的平滑 UI 更新
 
   // ===== UI =====
   const elStage = document.getElementById('stage');
@@ -89,66 +95,146 @@
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
   const unlockAudio = () => { if(AudioCtx && !audioCtx) audioCtx = new AudioCtx(); };
-  function beep(freq = 880, duration = 0.08, type = 'sine', gain = 0.05){
+  // 单次短 beep，带轻微包络，避免爆音
+  function beepOnce({freq=1200, duration=0.12, type='square', gain=0.08, when=0}={}){
     if(!audioCtx) return;
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = type; o.frequency.value = freq; g.gain.value = gain;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, audioCtx.currentTime + when);
+    // 包络：快起快落，提升可感知度且不刺耳
+    g.gain.setValueAtTime(0, audioCtx.currentTime + when);
+    g.gain.linearRampToValueAtTime(gain, audioCtx.currentTime + when + 0.005);
+    g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + when + duration);
+
     o.connect(g); g.connect(audioCtx.destination);
-    const t = audioCtx.currentTime; o.start(t); o.stop(t + duration);
+    o.start(audioCtx.currentTime + when);
+    o.stop(audioCtx.currentTime + when + duration);
+  }
+  // 连续 5 秒、每秒一声
+  function beepSeries(){
+    if(!audioCtx) return;
+    for(let i=0;i<5;i++){
+      beepOnce({when:i});
+    }
+    // 轻微震动（可选）
+    if(navigator.vibrate){
+      try{ navigator.vibrate([120, 880, 120, 880, 120, 880, 120, 880, 120]); }catch(e){}
+    }
   }
   ['click','keydown','touchstart'].forEach(ev => window.addEventListener(ev, unlockAudio, {once:true}));
 
   // ===== 工具 =====
   const fmt = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
   const phaseSeconds = p => (p==='study'?STUDY_MIN:BREAK_MIN)*60;
+  const phaseMs      = p => (p==='study'?STUDY_MS:BREAK_MS);
   const phaseLabel   = p => p==='study' ? '学习中' : '休息中';
 
   function setPhase(p, playTone = true){
     phase = p;
     remaining = phaseSeconds(p);
-    endAt = Date.now() + remaining*1000;  // 用“目标时间”抗节流
+    endAt = Date.now() + phaseMs(p);      // 绝对时间作为“真时钟”
     elStage.textContent = phaseLabel(p);
     elStage.className = 'stage ' + (p==='study' ? 'badge-study' : 'badge-break');
     elCycle.textContent = `第 ${cycle} 轮 · ${p==='study' ? '学习' : '休息'}`;
-    if(playTone) beep();
-    updateUI();
+
+    // 重新安排截止定时器
+    scheduleDeadlineTimer();
+
+    // 切换提示：5 连滴
+    if(playTone) beepSeries();
+
+    updateUI(); // 立即刷新
   }
 
   function updateUI(){
-    elTime.textContent = fmt(remaining);
-    const total = phaseSeconds(phase);
-    elBar.style.width = Math.min(100, Math.max(0, (1 - remaining/total)*100)).toFixed(2) + '%';
-  }
-
-  // 用 rAF 驱动；即便后台暂停，回来会按 endAt 纠正到真实时间
-  function loop(){
-    if(!running) return;
     const now = Date.now();
     remaining = Math.max(0, Math.ceil((endAt - now)/1000));
-    updateUI();
+    elTime.textContent = fmt(remaining);
+    const total = phaseSeconds(phase);
+    const pct = Math.min(100, Math.max(0, (1 - remaining/total)*100));
+    elBar.style.width = pct.toFixed(2) + '%';
+  }
 
-    if(remaining <= 0){
-      if(phase === 'study'){
-        setPhase('break');
-      }else{
-        cycle++; setPhase('study');
-      }
+  // 切换阶段（被 deadlineTimer 或心跳/前台检测触发）
+  function onPhaseEnd(playTone = true){
+    if(phase === 'study'){
+      setPhase('break', playTone);
+    }else{
+      cycle++;
+      setPhase('study', playTone);
     }
-    requestAnimationFrame(loop);
+  }
+
+  // 若因后台节流导致错过了多个阶段，这里一次性追赶
+  function catchUpIfNeeded(){
+    if(!running || endAt==null) return;
+    const now = Date.now();
+    // 允许最多一次性补齐 12 个阶段，防止极端循环
+    let guard = 12;
+    let needBeep = true; // 仅对最后一次切换发提示音
+    while(now >= endAt && guard-- > 0){
+      // 中间切换不响铃，最后一次才响
+      onPhaseEnd(false);
+    }
+    // 如果刚才经历了至少一次 while（即现在 endAt 已经被推进），对“当前”切换补一遍提示音
+    if(now >= endAt){
+      // 极端情况下仍在超时（比如系统时间被手动跳变），再追一次
+      onPhaseEnd(needBeep);
+    }
+  }
+
+  // 到期切换的单次定时器
+  function scheduleDeadlineTimer(){
+    if(deadlineTimer) { clearTimeout(deadlineTimer); deadlineTimer = null; }
+    const delay = Math.max(0, endAt - Date.now());
+    // 额外 +20ms 容差，避免边界抖动
+    deadlineTimer = setTimeout(() => {
+      // 到点先追赶（如果越过多个阶段），最后一次切换时才响铃
+      const beforePhase = phase;
+      catchUpIfNeeded();
+      // 正常到点（只跨越一个阶段）时补一次切换
+      if(beforePhase === phase) onPhaseEnd(true);
+    }, delay + 20);
+  }
+
+  // 前台平滑刷新（rAF），仅负责 UI；阶段切换不依赖 rAF
+  function loop(){
+    if(!running){ rafId = null; return; }
+    updateUI();
+    rafId = requestAnimationFrame(loop);
   }
 
   function start(){
     if(running) return;
     running = true;
-    endAt = Date.now() + remaining*1000;
     btnStart.disabled = true;
     btnReset.disabled = false;
-    requestAnimationFrame(loop);
+
+    // 开始当前阶段（study），安排截止
+    endAt = Date.now() + phaseMs(phase);
+    scheduleDeadlineTimer();
+
+    // 心跳：即使后台，也会被动触发，用于追赶与最小 UI 更新
+    if(!heartbeat){
+      heartbeat = setInterval(() => {
+        if(!running) return;
+        catchUpIfNeeded();
+        // 后台时 rAF 停止，这里也更新一次 UI（不求平滑）
+        if(document.hidden) updateUI();
+      }, 1000);
+    }
+
+    // 前台平滑 UI
+    if(!rafId) rafId = requestAnimationFrame(loop);
   }
 
   function reset(){
     running = false;
     cycle = 1;
+    if(deadlineTimer){ clearTimeout(deadlineTimer); deadlineTimer = null; }
+    if(heartbeat){ clearInterval(heartbeat); heartbeat = null; }
+    if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
     setPhase('study', false);
     btnStart.disabled = false;
     btnReset.disabled = true;
@@ -160,6 +246,13 @@
   window.addEventListener('keydown', (e)=>{
     if(e.key === ' '){ e.preventDefault(); if(!running) start(); }
     if(e.key === 'r' || e.key === 'R'){ reset(); }
+  });
+
+  // 可选：可见性变化时，立刻做一次追赶，避免切回前台看到“停在 00:00”
+  document.addEventListener('visibilitychange', () => {
+    if(!running) return;
+    catchUpIfNeeded();
+    updateUI();
   });
 
   // 初始渲染
