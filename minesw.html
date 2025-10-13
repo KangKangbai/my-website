@@ -1,411 +1,402 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport"
-        content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>扫雷 · Mobile Luxe</title>
-  <meta name="description" content="极简、高级质感的手机端扫雷。修复 iOS 首次长按放大问题；棋盘总是适配手机首屏显示。" />
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>扫雷 · Mobile Light</title>
+  <meta name="description" content="简洁、轻量、适配手机端的扫雷。点按翻开、长按插旗、首击不死。">
   <style>
-    :root {
-      --bg: #0b0f16;
-      --ink: #e7e9ee;
-      --muted: #94a3b8;
-      --gold: #d6b36a;
-      --glass: rgba(255, 255, 255, .04);
-      --line: rgba(255, 255, 255, .08);
-      --danger: #ff6b6b;
-      --ok: #34d399;
-
-      /* 数字颜色 */
-      --n1: #7aa2ff; --n2: #9fe0a5; --n3: #ff9cae; --n4: #b39cfb;
-      --n5: #ffd27e; --n6: #7de9e9; --n7: #f9a8d4; --n8: #cbd5e1;
-
-      --radius: 18px;
-      --cell-gap: 6px;      /* JS 会动态调整 */
-      --board-pad: 10px;    /* 围边留白 */
-      --cs: 32px;           /* 单元格像素尺寸（JS 覆盖） */
+    :root{
+      --bg:#fafafa;
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --accent:#2563eb;
+      --danger:#dc2626;
+      --ok:#16a34a;
+      --grid-gap:6px;
+      --radius:14px;
+      --shadow:0 6px 20px rgba(0,0,0,.08);
+      --num1:#2563eb; --num2:#16a34a; --num3:#dc2626; --num4:#7c3aed;
+      --num5:#b45309; --num6:#0ea5e9; --num7:#111827; --num8:#6b7280;
     }
-
-    * { box-sizing: border-box }
-
-    html, body {
-      height: 100%;
-      -webkit-text-size-adjust: 100%;
-      touch-action: manipulation;
-      overscroll-behavior: none;
+    *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,PingFang SC,Hiragino Sans GB,Microsoft YaHei,Apple Color Emoji,Segoe UI Emoji;
     }
-
-    body {
-      margin: 0;
-      background: radial-gradient(1200px 700px at 20% 0%, #101726 0%, var(--bg) 55%), var(--bg);
-      color: var(--ink);
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, "Noto Sans CJK SC", sans-serif;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;             /* 避免长按选中文本触发放大/放大镜 */
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
+    .wrap{
+      padding: max(env(safe-area-inset-top),14px) 14px max(env(safe-area-inset-bottom),14px);
+      display:flex; flex-direction:column; gap:12px; min-height:100%;
     }
-
-    .app { max-width: 520px; margin: 0 auto; padding: 16px 14px 28px; }
-
-    /* 顶部栏 */
-    .top{
-      display:flex; align-items:center; justify-content:space-between;
-      padding:12px 14px; border:1px solid var(--line);
-      border-radius:calc(var(--radius) + 4px);
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-      backdrop-filter: blur(10px);
-      box-shadow:0 20px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+    header{
+      background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+      padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+      user-select:none;
     }
-    .brand{ letter-spacing:.5px; font-weight:600; }
-    .brand b{ color:var(--gold); font-weight:700 }
-
-    .stats{ display:flex; gap:8px; align-items:center }
-    .chip{ display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--line);
-           border-radius:999px; background:var(--glass); font-variant-numeric:tabular-nums; min-width:92px; justify-content:center }
-    .chip .v{ font-weight:700 }
-
-    .btn{ appearance:none; border:1px solid var(--gold); color:var(--gold); background:transparent; padding:8px 12px;
-          border-radius:999px; font-weight:600; font-size:16px }
-    .btn:active{ transform: translateY(1px) }
-
-    /* 控制区 */
-    .controls{ display:flex; align-items:center; gap:10px; margin:14px 2px 16px }
-    select{ flex:1; padding:10px 14px; border-radius:999px; border:1px solid var(--line); background:var(--glass); color:var(--ink) }
-    .toggle{ padding:10px 14px; border-radius:999px; border:1px solid var(--line); color:var(--ink); background:var(--glass); font-size:16px }
-    .toggle.active{ border-color:var(--gold); color:var(--gold) }
-
-    /* 棋盘容器 */
+    .stat{display:flex; gap:12px; align-items:baseline; flex-wrap:wrap}
+    .pill{
+      background:#f3f4f6; border-radius:999px; padding:4px 10px; font-weight:600; color:var(--ink);
+      min-width:72px; text-align:center;
+    }
+    .pill small{display:block; font-size:12px; color:var(--muted); font-weight:500}
+    .controls{display:flex; gap:8px; align-items:center}
+    button{
+      border:0; border-radius:12px; padding:10px 14px; font-weight:600; cursor:pointer;
+      background:var(--ink); color:white; box-shadow:var(--shadow);
+    }
+    button.secondary{background:#e5e7eb; color:#111827}
+    button:active{transform:translateY(1px)}
+    .notice{font-size:12px; color:var(--muted)}
+    /* 棋盘容器：高度自适应，避免滚动 */
     .board-wrap{
-      position:relative; border-radius:var(--radius); border:1px solid var(--line); padding:var(--board-pad);
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015));
-      box-shadow:0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+      background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+      padding:12px;
+      display:flex; flex-direction:column; gap:10px; min-height:0;
     }
-
-    /* 棋盘：使用固定像素格，确保横向按列、纵向按行都能贴合首屏 */
     .board{
-      display:grid;
-      gap: var(--cell-gap);
-      touch-action: none; /* 阻断双击/捏合缩放手势 */
-      grid-template-columns: repeat(10, var(--cs)); /* 初始，JS 会覆盖 */
+      display:grid; gap:var(--grid-gap);
+      touch-action:none; /* 阻止双指缩放/滚动干扰手势 */
+      user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+      min-height:0; /* 允许在容器内收缩 */
     }
-
+    /* 方块 */
     .cell{
-      position:relative;
-      width: var(--cs);
-      height: var(--cs);
-      display:grid; place-items:center;
-      font-weight:700; border-radius:12px;
-      cursor:pointer;
-      background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
-      border:1px solid rgba(255,255,255,.18);
-      box-shadow:0 8px 16px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.12);
-      transition: background .15s ease, box-shadow .15s ease, transform .08s ease;
-      -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+      display:flex; align-items:center; justify-content:center;
+      background:#f3f4f6; border-radius:10px; font-weight:800;
+      aspect-ratio:1/1; /* 正方形 */
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -1px 0 rgba(0,0,0,.05);
     }
-    .cell:active{ transform: translateY(1px) }
+    .cell.hidden{cursor:pointer}
+    .cell.revealed{background:white; box-shadow:inset 0 0 0 1px #e5e7eb}
+    .cell.mine.revealed{background:#fee2e2}
+    .cell.flag::after{content:"🚩"; font-size:calc(var(--cell-font)*0.9)}
+    .cell.mine.revealed::after{content:"💣"; font-size:calc(var(--cell-font)*0.9)}
+    .cell.num1{color:var(--num1)} .cell.num2{color:var(--num2)} .cell.num3{color:var(--num3)}
+    .cell.num4{color:var(--num4)} .cell.num5{color:var(--num5)} .cell.num6{color:var(--num6)}
+    .cell.num7{color:var(--num7)} .cell.num8{color:var(--num8)}
+    /* 自适应字号：随格子尺寸变化 */
+    :root{ --cell-font: clamp(12px, 2.6vmin, 22px); }
+    .board .cell{ font-size:var(--cell-font); }
 
-    .cell.revealed{
-      background:linear-gradient(180deg, rgba(5,8,14,.92), rgba(10,14,22,.92));
-      border-color:rgba(255,255,255,.06);
-      box-shadow: inset 0 2px 10px rgba(0,0,0,.65), inset 0 0 0 1px rgba(255,255,255,.03);
-      transform: translateY(1px);
-      cursor:default;
-    }
-
-    .cell.flag::after{ content:"🚩"; font-size: calc(var(--cs) * .56); line-height:1; }
-    .cell.mine.revealed::after{ content:"💣"; font-size: calc(var(--cs) * .56); line-height:1; }
-
-    .cell .num{ font-size: calc(var(--cs) * .48); line-height:1; filter: drop-shadow(0 1px 0 rgba(0,0,0,.25)); }
-    .cell.n1 .num{ color:var(--n1) } .cell.n2 .num{ color:var(--n2) } .cell.n3 .num{ color:var(--n3) }
-    .cell.n4 .num{ color:var(--n4) } .cell.n5 .num{ color:var(--n5) } .cell.n6 .num{ color:var(--n6) }
-    .cell.n7 .num{ color:var(--n7) } .cell.n8 .num{ color:var(--n8) }
-
-    .cell.wrong.flag::after{ content:"✖"; color:var(--danger) }
-
-    .cell.revealed::before{
-      content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
-      background: radial-gradient(rgba(255,255,255,.03) 1px, transparent 1px) 0 0/8px 8px;
-    }
-
-    .banner{ margin-top:12px; padding:10px 12px; border:1px solid var(--line); border-radius:999px; text-align:center; color:var(--muted); }
-    .banner.win{ color:var(--ok) } .banner.lose{ color:var(--danger) }
-
-    .tiny{ font-size:12px; color:var(--muted); margin-top:8px; text-align:center }
-    .tiny a{ color:var(--muted); text-decoration: underline dotted }
-    .gold{ color:var(--gold) }
-
-    @media (max-width: 380px){ .chip{ min-width:86px } }
-
-    /* 自定义下拉选择 */
-    .select{ position:relative; flex:1; padding:10px 14px; border-radius:999px; border:1px solid var(--line); background:var(--glass); color:var(--ink); display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:16px }
-    .select .caret{ opacity:.7 }
-    .select-menu{ position:absolute; top:calc(100% + 8px); left:0; right:0; border:1px solid var(--line); border-radius:16px;
-                  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); box-shadow:0 20px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
-                  padding:8px; display:none; z-index:20 }
-    .select.open .select-menu{ display:block }
-    .select-menu li{ list-style:none; padding:10px 12px; border-radius:12px; cursor:pointer }
-    .select-menu li[aria-selected="true"]{ outline:1px solid var(--gold); color:var(--gold) }
-
-    /* 交互元素避免触发浏览器缩放手势 */
-    .btn, .toggle, .select { touch-action: manipulation; }
+    footer{color:var(--muted); font-size:12px; text-align:center}
   </style>
 </head>
 <body>
-  <div class="app">
-    <div class="top">
-      <div class="brand">扫雷</div>
-      <div class="stats">
-        <div class="chip" aria-live="polite">⏱ <span class="v" id="time">000</span></div>
-        <div class="chip" aria-live="polite">💣 <span class="v" id="remain">000</span></div>
-        <button class="btn" id="reset" title="重新开始">↻</button>
+  <div class="wrap">
+    <header>
+      <div class="stat">
+        <div class="pill"><span id="mineLeft">00</span><small>剩余雷</small></div>
+        <div class="pill"><span id="timer">00:00</span><small>用时</small></div>
+        <div class="pill"><span id="status">准备</span><small>状态</small></div>
       </div>
-    </div>
-
-    <div class="controls">
-      <div id="levelSel" class="select" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false" title="难度">
-        <span id="levelVal" class="select-value">标准（10×14 / 30雷）</span>
-        <svg class="caret" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
-        <ul id="levelMenu" class="select-menu" role="listbox">
-          <li role="option" data-value="easy">简单（8×10 / 10雷）</li>
-          <li role="option" data-value="med" aria-selected="true">标准（10×14 / 30雷）</li>
-          <li role="option" data-value="hard">困难（12×18 / 60雷）</li>
-        </ul>
+      <div class="controls">
+        <button id="restart">重开</button>
+        <button id="mode" class="secondary" title="点按=翻开；长按=插旗">点按翻开 / 长按插旗</button>
       </div>
-      <button id="flagMode" class="toggle" title="标记模式">🚩 标记</button>
-    </div>
+    </header>
 
     <div class="board-wrap">
-      <div class="board" id="board" role="grid" aria-label="扫雷棋盘"></div>
+      <div class="notice">提示：首次点击不会踩雷。长按（约0.35秒）插旗；已翻开的数字上点按可“快速开空”。</div>
+      <div id="board" class="board" aria-label="扫雷棋盘"></div>
     </div>
 
-    <div class="banner" id="banner" hidden></div>
-    <div class="tiny">提示：点击翻开，<span class="gold">长按</span>或开启“标记”按钮可插旗；首次点击永不触雷。</div>
+    <footer>© Mobile Minesweeper · 纯前端，无数据收集</footer>
   </div>
 
   <script>
-  (function(){
-    const DIFF = { easy:{rows:8, cols:10, mines:10}, med:{rows:10, cols:14, mines:30}, hard:{rows:12, cols:18, mines:60} };
+    ;(() => {
+      const elBoard   = document.getElementById('board');
+      const elTimer   = document.getElementById('timer');
+      const elMine    = document.getElementById('mineLeft');
+      const elStatus  = document.getElementById('status');
+      const btnRestart= document.getElementById('restart');
 
-    const qs = s => document.querySelector(s);
-    const boardEl = qs('#board');
-    const timeEl = qs('#time');
-    const remainEl = qs('#remain');
-    const resetBtn = qs('#reset');
-    const levelSel = qs('#levelSel');
-    const levelMenu = qs('#levelMenu');
-    const levelVal = qs('#levelVal');
-    const flagBtn = qs('#flagMode');
-    const bannerEl = qs('#banner');
-    const wrapEl = document.querySelector('.board-wrap');
-
-    let currentLevel = 'med';
-    function getLevel(){ return currentLevel }
-    function setLevel(val){
-      currentLevel = val;
-      const opt = levelMenu.querySelector(`[data-value="${val}"]`);
-      levelMenu.querySelectorAll('[role=option]').forEach(li => li.setAttribute('aria-selected', li.dataset.value === val ? 'true' : 'false'));
-      levelVal.textContent = opt ? opt.textContent.trim() : val;
-    }
-
-    let rows, cols, mines;
-    let grid = [];
-    let started = false, ended = false;
-    let flags = 0, opened = 0;
-    let startAt = 0, elapsedFixed = 0, timerHandle = null;
-    let flagMode = false;
-
-    const idx = (r,c) => r*cols + c;
-    const inb = (r,c) => r>=0 && r<rows && c>=0 && c<cols;
-
-    function saveBest(t){
-      const key = `ms_best_${rows}x${cols}_${mines}`;
-      const best = +(localStorage.getItem(key) || 0);
-      if(!best || t < best){ localStorage.setItem(key, t); }
-    }
-
-    function fmt(t){ return String(Math.min(999, Math.floor(t/1000))).padStart(3, '0'); }
-    function updateTime(){
-      const now = Date.now();
-      const t = started ? (elapsedFixed + (ended ? 0 : (now - startAt))) : 0;
-      timeEl.textContent = fmt(t);
-    }
-    function startTimer(){ startAt = Date.now(); started = true; ended = false; if(timerHandle) clearInterval(timerHandle); timerHandle = setInterval(updateTime, 250); }
-    function stopTimer(){ ended = true; elapsedFixed += Date.now() - startAt; updateTime(); clearInterval(timerHandle); timerHandle = null; }
-    function resetTimer(){ started = false; ended = false; elapsedFixed = 0; if(timerHandle) clearInterval(timerHandle); timerHandle = null; updateTime(); }
-
-    function vibe(ms){ if(navigator.vibrate) try{ navigator.vibrate(ms) }catch(_){} }
-    function beep(type="tap"){ try{ const ctx = new (window.AudioContext||window.webkitAudioContext)(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.type = type==="fail"?"square":"sine"; o.frequency.value = type==="flag"?740:(type==="success"?880:(type==="fail"?220:660)); g.gain.setValueAtTime(0.001, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.06, ctx.currentTime+0.01); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.12); o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.13); setTimeout(()=>ctx.close&&ctx.close(),180);}catch(e){} }
-
-    function neighbors(r,c){ const ns=[]; for(let dr=-1; dr<=1; dr++) for(let dc=-1; dc<=1; dc++){ if(dr||dc){ const nr=r+dr, nc=c+dc; if(inb(nr,nc)) ns.push([nr,nc]); } } return ns; }
-    function countMines(r,c){ let n=0; for(const [nr,nc] of neighbors(r,c)) if(grid[idx(nr,nc)].mine) n++; return n; }
-
-    function plantMines(safeR, safeC){
-      const forbid = new Set([idx(safeR,safeC), ...neighbors(safeR,safeC).map(([r,c])=>idx(r,c))]);
-      const bag = []; for(let i=0;i<rows*cols;i++) if(!forbid.has(i)) bag.push(i);
-      for(let i=bag.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [bag[i],bag[j]]=[bag[j],bag[i]]; }
-      const picks = bag.slice(0, mines);
-      for(const k of picks) grid[k].mine = true;
-      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) grid[idx(r,c)].n = countMines(r,c);
-    }
-
-    function renderBoard(){
-      boardEl.style.gridTemplateColumns = `repeat(${cols}, var(--cs))`;
-      boardEl.innerHTML = '';
-      const frag = document.createDocumentFragment();
-      for(let r=0;r<rows;r++){
-        for(let c=0;c<cols;c++){
-          const cell = document.createElement('div');
-          cell.className='cell';
-          cell.setAttribute('role','gridcell');
-          cell.dataset.r=r; cell.dataset.c=c;
-          frag.appendChild(cell);
-        }
+      // 根据方向/屏幕，选择盘面与雷数（简洁且实际可玩）
+      function pickLayout(){
+        const portrait = window.matchMedia("(orientation: portrait)").matches;
+        // iPhone 13 390x844：纵向使用 16x10，横向 12x18
+        return portrait
+          ? { rows: 16, cols: 10, mines: 20 }
+          : { rows: 12, cols: 18, mines: 40 };
       }
-      boardEl.appendChild(frag);
-    }
 
-    function paintCell(r,c){
-      const d = grid[idx(r,c)]; const el = cellEl(r,c);
-      el.classList.toggle('revealed', d.open);
-      el.classList.toggle('flag', d.flag);
-      el.classList.toggle('mine', d.mine);
-      if(d.open && !d.mine){
-        el.textContent='';
-        if(d.n>0){ const s=document.createElement('span'); s.className='num'; s.textContent=d.n; el.appendChild(s); el.classList.add('n'+d.n); }
-      } else if(!d.open){ el.textContent=''; }
-    }
+      // 状态
+      let R,C,M;                 // 行、列、雷
+      let firstClick = true;
+      let grid=[], revealed=[], flagged=[], nums=[];
+      let gameOver=false, win=false;
+      let startAt=null, timerId=null, minesLeft=0;
 
-    function cellEl(r,c){ return boardEl.children[idx(r,c)] }
+      function idx(r,c){ return r*C + c }
+      function inb(r,c){ return r>=0 && r<R && c>=0 && c<C }
+      function neighbours(r,c){
+        const res=[];
+        for(let dr=-1; dr<=1; dr++)
+          for(let dc=-1; dc<=1; dc++){
+            if(dr===0 && dc===0) continue;
+            const nr=r+dr, nc=c+dc;
+            if(inb(nr,nc)) res.push([nr,nc]);
+          }
+        return res;
+      }
 
-    function reveal(r,c){
-      const d = grid[idx(r,c)]; if(d.open || d.flag || ended) return;
-      if(!started){ plantMines(r,c); startTimer(); }
-      d.open=true; opened++; paintCell(r,c);
-      if(d.mine){ endGame(false, r, c); return; }
-      if(d.n===0){
-        const q=[[r,c]]; const seen = new Set([idx(r,c)]);
-        while(q.length){ const [cr,cc] = q.shift();
-          for(const [nr,nc] of neighbors(cr,cc)){
-            const di = grid[idx(nr,nc)], key = idx(nr,nc);
-            if(!seen.has(key) && !di.open && !di.flag && !di.mine){
-              di.open=true; opened++; paintCell(nr,nc);
-              if(di.n===0){ q.push([nr,nc]); seen.add(key); }
-            }
+      function reset(){
+        ({rows:R, cols:C, mines:M} = pickLayout());
+        firstClick=true; gameOver=false; win=false;
+        startAt=null; clearInterval(timerId); elTimer.textContent="00:00";
+        minesLeft=M; updateMineLeft();
+        grid = new Array(R*C).fill(0); // 1=mine
+        revealed = new Array(R*C).fill(false);
+        flagged  = new Array(R*C).fill(false);
+        nums = new Array(R*C).fill(0);
+        elStatus.textContent="准备";
+        // 渲染棋盘
+        elBoard.style.gridTemplateColumns = `repeat(${C}, 1fr)`;
+        elBoard.innerHTML="";
+        for(let r=0;r<R;r++){
+          for(let c=0;c<C;c++){
+            const cell = document.createElement('button');
+            cell.className="cell hidden";
+            cell.setAttribute('data-r', r);
+            cell.setAttribute('data-c', c);
+            cell.setAttribute('aria-label', '未翻开');
+            cell.addEventListener('click', onClick, {passive:false});
+            cell.addEventListener('contextmenu', e=>e.preventDefault());
+            setupTouchHandlers(cell);
+            elBoard.appendChild(cell);
+          }
+        }
+        // 根据容器高度调整 cell 字号（更稳）
+        fitFont();
+      }
+
+      function fitFont(){
+        // 粗略按容器高度/行数估一份字号，写入 CSS 变量 --cell-font
+        const rect = elBoard.getBoundingClientRect();
+        const gap = parseFloat(getComputedStyle(elBoard).gap||'6');
+        const cellSize = Math.floor((rect.height - gap*(R-1)) / R);
+        const px = Math.max(12, Math.min(24, Math.floor(cellSize*0.55)));
+        document.documentElement.style.setProperty('--cell-font', px + 'px');
+      }
+
+      // 放置地雷，保证首击不死
+      function placeMines(safeR, safeC){
+        let left=M;
+        while(left>0){
+          const r = Math.floor(Math.random()*R);
+          const c = Math.floor(Math.random()*C);
+          if(grid[idx(r,c)]===1) continue;
+          // 避免首击 3x3 区域
+          if(Math.abs(r-safeR)<=1 && Math.abs(c-safeC)<=1) continue;
+          grid[idx(r,c)] = 1;
+          left--;
+        }
+        // 计算数字
+        for(let r=0;r<R;r++){
+          for(let c=0;c<C;c++){
+            const i = idx(r,c);
+            if(grid[i]===1){ nums[i]=-1; continue; }
+            let n=0;
+            for(const [nr,nc] of neighbours(r,c)) if(grid[idx(nr,nc)]===1) n++;
+            nums[i]=n;
           }
         }
       }
-      checkWin();
-    }
 
-    function toggleFlag(r,c){ const d=grid[idx(r,c)]; if(d.open || ended) return; d.flag=!d.flag; flags += d.flag?1:-1; remainEl.textContent = String(mines - flags).padStart(3,'0'); paintCell(r,c); vibe(25); beep('flag'); }
-
-    function endGame(win, hitR=-1, hitC=-1){
-      stopTimer(); ended=true;
-      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
-        const d=grid[idx(r,c)];
-        if(d.mine && !d.open){ d.open=true; paintCell(r,c); }
-        if(!d.mine && d.flag){ const el = cellEl(r,c); el.classList.add('wrong'); }
+      function startTimer(){
+        if(timerId) return;
+        startAt = Date.now();
+        timerId = setInterval(()=>{
+          const s = Math.floor((Date.now()-startAt)/1000);
+          const mm = String(Math.floor(s/60)).padStart(2,'0');
+          const ss = String(s%60).padStart(2,'0');
+          elTimer.textContent = `${mm}:${ss}`;
+        }, 250);
       }
-      const t = elapsedFixed;
-      bannerEl.hidden=false;
-      if(win){ bannerEl.className='banner win'; bannerEl.textContent=`✓ 清盘成功！用时 ${Math.floor(t/1000)}s`; saveBest(t); vibe([40,60,40]); beep('success'); }
-      else{ bannerEl.className='banner lose'; bannerEl.textContent='✗ 爆雷了，再来！'; vibe([120,80,120]); beep('fail'); if(hitR>=0){ const el = cellEl(hitR, hitC); el.style.outline='2px solid var(--danger)'; el.style.outlineOffset='-2px'; } }
-    }
 
-    function checkWin(){ const totalSafe = rows*cols - mines; if(opened >= totalSafe) endGame(true); }
-
-    function bindEvents(){
-      let pressTimer=null; let pressedCell=null;
-      function clearPress(){ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } pressedCell=null; }
-
-      function onPointerDown(ev){
-        // 关键修复：阻断触摸默认行为，避免 iOS 首次长按触发视觉缩放/放大
-        if(ev.pointerType === 'touch'){ ev.preventDefault(); }
-        const target = ev.target.closest('.cell'); if(!target) return;
-        const r=+target.dataset.r, c=+target.dataset.c; pressedCell={r,c};
-        if(flagMode){ toggleFlag(r,c); return; }
-        pressTimer = setTimeout(()=>{ if(pressedCell){ toggleFlag(r,c); clearPress(); } }, 420);
+      function updateMineLeft(){
+        elMine.textContent = String(minesLeft).padStart(2,'0');
       }
-      function onPointerUp(ev){
-        if(ev.pointerType === 'touch'){ ev.preventDefault(); }
-        const target = ev.target.closest('.cell'); if(!target){ clearPress(); return; }
-        const r=+target.dataset.r, c=+target.dataset.c;
-        if(pressTimer){ clearPress(); reveal(r,c); beep('tap'); }
+
+      function reveal(r,c){
+        if(gameOver) return;
+        const i = idx(r,c);
+        if(flagged[i] || revealed[i]) return;
+
+        if(firstClick){
+          placeMines(r,c);
+          firstClick=false;
+          elStatus.textContent="进行中";
+          startTimer();
+        }
+
+        if(grid[i]===1){
+          // 踩雷
+          revealed[i]=true;
+          renderCell(r,c);
+          lose();
+          return;
+        }
+        // BFS 翻空
+        const q=[[r,c]];
+        while(q.length){
+          const [cr,cc]=q.shift();
+          const ci=idx(cr,cc);
+          if(revealed[ci] || flagged[ci]) continue;
+          revealed[ci]=true;
+          if(nums[ci]===0){
+            for(const [nr,nc] of neighbours(cr,cc)){
+              const ni=idx(nr,nc);
+              if(!revealed[ni] && !flagged[ni]) q.push([nr,nc]);
+            }
+          }
+        }
+        renderRegion();
+        checkWin();
       }
-      function onPointerCancel(){ clearPress(); }
 
-      boardEl.addEventListener('pointerdown', onPointerDown, { passive:false });
-      boardEl.addEventListener('pointerup', onPointerUp, { passive:false });
-      boardEl.addEventListener('pointerleave', onPointerCancel);
-      boardEl.addEventListener('pointercancel', onPointerCancel);
+      function toggleFlag(r,c){
+        if(gameOver) return;
+        const i=idx(r,c);
+        if(revealed[i]) return;
+        if(firstClick){
+          // 首次操作如果是长按，也先布雷并启动
+          placeMines(r,c);
+          firstClick=false;
+          elStatus.textContent="进行中";
+          startTimer();
+        }
+        flagged[i]=!flagged[i];
+        minesLeft += flagged[i] ? -1 : 1;
+        updateMineLeft();
+        renderCell(r,c);
+        checkWin();
+      }
 
-      // 兜底：禁止双击放大、长按系统菜单
-      boardEl.addEventListener('dblclick', e => e.preventDefault());
-      document.addEventListener('contextmenu', e => e.preventDefault());
+      function chordOpen(r,c){
+        // 已翻开的数字格，若周围旗数==数字，则自动翻开其他未翻格
+        const i = idx(r,c);
+        if(!revealed[i] || nums[i]<=0) return;
+        const neigh = neighbours(r,c);
+        const flags = neigh.filter(([nr,nc])=>flagged[idx(nr,nc)]).length;
+        if(flags !== nums[i]) return;
+        for(const [nr,nc] of neigh){
+          if(!flagged[idx(nr,nc)] && !revealed[idx(nr,nc)]){
+            reveal(nr,nc);
+          }
+        }
+      }
 
-      resetBtn.addEventListener('click', ()=>{ init(getLevel()); });
-      setupSelect();
-      flagBtn.addEventListener('click', ()=>{ flagMode=!flagMode; flagBtn.classList.toggle('active', flagMode); vibe(20); });
+      function lose(){
+        gameOver=true; win=false; clearInterval(timerId);
+        elStatus.textContent="踩雷";
+        // 全部翻开地雷
+        for(let r=0;r<R;r++) for(let c=0;c<C;c++){
+          const i=idx(r,c);
+          if(grid[i]===1){ revealed[i]=true; }
+        }
+        renderRegion();
+      }
+      function checkWin(){
+        if(gameOver) return;
+        // 胜利条件：所有非雷格已翻开
+        let opened=0;
+        for(let i=0;i<R*C;i++){
+          if(revealed[i]) opened++;
+        }
+        if(opened === R*C - M){
+          gameOver=true; win=true; clearInterval(timerId);
+          elStatus.textContent="通关";
+          // 自动把剩余格标旗
+          for(let i=0;i<R*C;i++){
+            if(!revealed[i] && !flagged[i]){ flagged[i]=true; minesLeft--; }
+          }
+          updateMineLeft();
+          renderRegion();
+        }
+      }
 
-      // 尺寸变化自适应
-      window.addEventListener('resize', ()=>{ autoCellGap(); fitBoard(); }, { passive:true });
+      function renderCell(r,c){
+        const i=idx(r,c);
+        const cell = elBoard.children[i];
+        cell.className = 'cell';
+        if(!revealed[i]) cell.classList.add('hidden');
+        if(flagged[i]) cell.classList.add('flag');
+        if(revealed[i] && grid[i]===1) cell.classList.add('mine','revealed');
+        if(revealed[i] && grid[i]!==1){
+          cell.classList.add('revealed');
+          const n = nums[i];
+          cell.textContent = n>0 ? n : '';
+          if(n>0) cell.classList.add('num'+n);
+        }else{
+          if(grid[i]!==1) cell.textContent='';
+        }
+      }
+      function renderRegion(){
+        for(let r=0;r<R;r++) for(let c=0;c<C;c++) renderCell(r,c);
+      }
 
-      // 老机型兜底：双击节流
-      let lastTouchEnd=0; document.addEventListener('touchend', function(e){ const now=Date.now(); if(now-lastTouchEnd<=300){ e.preventDefault(); } lastTouchEnd=now; }, { passive:false });
-      ['gesturestart','gesturechange','gestureend'].forEach(evt=>{ document.addEventListener(evt, e=>e.preventDefault()); });
-      // 阻止棋盘上的默认触摸手势（确保所有场景生效）
-      boardEl.addEventListener('touchstart', e=>e.preventDefault(), { passive:false });
-    }
+      // 点击/触摸：短按翻开，长按（≥350ms）插旗；已翻数字上点按尝试“快速开空”
+      function onClick(e){
+        e.preventDefault();
+        const cell=e.currentTarget;
+        const r=+cell.dataset.r, c=+cell.dataset.c;
+        const i=idx(r,c);
+        if(revealed[i] && nums[i]>0){ chordOpen(r,c); return; }
+        reveal(r,c);
+      }
 
-    function setupSelect(){
-      function open(b){ levelSel.classList.toggle('open', b); levelSel.setAttribute('aria-expanded', b); }
-      levelSel.addEventListener('click', ()=>{ open(!levelSel.classList.contains('open')); });
-      levelMenu.addEventListener('click', (e)=>{ const li=e.target.closest('li[role=option]'); if(!li) return; setLevel(li.dataset.value); open(false); init(getLevel()); });
-      document.addEventListener('click', (e)=>{ if(!levelSel.contains(e.target)) open(false); });
-      levelSel.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(!levelSel.classList.contains('open')); } if(e.key==='Escape'){ open(false); } });
-    }
+      function setupTouchHandlers(cell){
+        let pressTimer=null, moved=false;
+        const start = (e)=>{
+          moved=false;
+          e.preventDefault();
+          pressTimer = setTimeout(()=>{
+            const r=+cell.dataset.r, c=+cell.dataset.c;
+            toggleFlag(r,c);
+            pressTimer=null;
+          }, 350); // 长按阈值
+        };
+        const move = ()=>{
+          // 发生滑动则取消长按
+          moved=true;
+          if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; }
+        };
+        const end = (e)=>{
+          e.preventDefault();
+          if(pressTimer){
+            clearTimeout(pressTimer); pressTimer=null;
+            if(!moved) cell.click(); // 触发短按=翻开
+          }
+        };
+        cell.addEventListener('touchstart', start, {passive:false});
+        cell.addEventListener('touchmove', move, {passive:false});
+        cell.addEventListener('touchend', end, {passive:false});
+        cell.addEventListener('touchcancel', end, {passive:false});
+      }
 
-    function autoCellGap(){
-      // 基于容器宽度估算间距
-      const w = boardEl.clientWidth || wrapEl.clientWidth;
-      const g = Math.max(4, Math.min(8, Math.round(w / Math.max(8, cols) / 12)));
-      boardEl.style.gap = g + 'px';
-      document.documentElement.style.setProperty('--cell-gap', g + 'px');
-    }
+      // 重开、旋转/尺寸变化时自适应
+      btnRestart.addEventListener('click', reset);
+      window.addEventListener('resize', ()=>{
+        const oldR=R, oldC=C;
+        const layout = pickLayout();
+        if(layout.rows!==oldR || layout.cols!==oldC){
+          // 方向/尺寸变化较大：直接重开
+          reset();
+        }else{
+          // 仅字号重算，避免跳局
+          setTimeout(fitFont, 50);
+        }
+      }, {passive:true});
 
-    function fitBoard(){
-      // 计算单元格像素尺寸：同时满足宽和高不溢出首屏
-      const rect = wrapEl.getBoundingClientRect();
-      const computed = getComputedStyle(wrapEl);
-      const padY = parseFloat(computed.paddingTop) + parseFloat(computed.paddingBottom);
-      const gap = parseFloat(getComputedStyle(boardEl).columnGap || getComputedStyle(boardEl).gap) || 6;
-
-      const availWidth = wrapEl.clientWidth; // 已含左右 padding
-      const availHeight = Math.max(220, window.innerHeight - rect.top - 24); // 24px 底部余量
-
-      const sizeW = (availWidth - gap*(cols-1)) / cols;
-      const sizeH = (availHeight - padY - gap*(rows-1)) / rows;
-      const cs = Math.max(22, Math.floor(Math.min(sizeW, sizeH))); // 最小 22px，保证可点中
-
-      boardEl.style.setProperty('--cs', cs + 'px');
-      boardEl.style.gridTemplateColumns = `repeat(${cols}, var(--cs))`;
-    }
-
-    function init(level='med'){
-      ({rows, cols, mines} = DIFF[level] || DIFF.med);
-      grid = Array.from({length: rows*cols}, ()=>({mine:false, n:0, open:false, flag:false}));
-      flags=0; opened=0; flagMode=false; flagBtn.classList.remove('active');
-      remainEl.textContent = String(mines - flags).padStart(3,'0');
-      bannerEl.hidden=true; bannerEl.textContent=''; bannerEl.className='banner';
-      renderBoard(); resetTimer(); updateTime(); autoCellGap(); fitBoard();
-    }
-
-    bindEvents();
-    setLevel(getLevel());
-    init(getLevel());
-  })();
+      // 初始化
+      reset();
+    })();
   </script>
 </body>
 </html>
