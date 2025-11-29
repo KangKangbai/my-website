@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <title>AI 选择题生成器</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC",
+                "Microsoft YaHei", sans-serif;
+            background: #f5f5f7;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 720px;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 20px 18px 24px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        }
+        h1 {
+            margin: 0 0 12px;
+            font-size: 20px;
+            text-align: center;
+        }
+        .subtitle {
+            margin: 0 0 18px;
+            font-size: 13px;
+            color: #6b7280;
+            text-align: center;
+        }
+        .input-panel {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .input-panel input {
+            flex: 1;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid #d1d5db;
+            font-size: 14px;
+            outline: none;
+        }
+        .input-panel input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.15);
+        }
+        .input-panel button {
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            background: #2563eb;
+            color: #ffffff;
+            white-space: nowrap;
+        }
+        .input-panel button:disabled {
+            background: #9ca3af;
+            cursor: default;
+        }
+        #status {
+            min-height: 20px;
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+        #status.error {
+            color: #b91c1c;
+        }
+
+        #quizArea.hidden {
+            display: none;
+        }
+
+        #progress {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 6px;
+        }
+        #questionText {
+            font-size: 15px;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        #options {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .option-item input[type="radio"] {
+            margin-top: 3px;
+        }
+        .option-item:hover {
+            background: #f3f4f6;
+        }
+        .option-item.selected {
+            background: #eff6ff;
+            border-color: #2563eb;
+        }
+        .option-item.correct {
+            background: #ecfdf3;
+            border-color: #16a34a;
+        }
+        .option-item.incorrect {
+            background: #fef2f2;
+            border-color: #dc2626;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+        }
+        .button-row button {
+            flex: 1;
+            padding: 8px 0;
+            border-radius: 10px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        #submitBtn {
+            background: #10b981;
+            color: #ffffff;
+        }
+        #submitBtn:disabled {
+            background: #9ca3af;
+            cursor: default;
+        }
+        #nextBtn {
+            background: #e5e7eb;
+            color: #111827;
+        }
+        #nextBtn.hidden {
+            display: none;
+        }
+
+        #explanation {
+            margin-top: 12px;
+            padding: 10px 10px 8px;
+            border-radius: 10px;
+            background: #f9fafb;
+            font-size: 13px;
+            line-height: 1.5;
+            border: 1px dashed #d1d5db;
+        }
+        #explanation.hidden {
+            display: none;
+        }
+        #explanation strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .tip {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 6px;
+            text-align: right;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                border-radius: 12px;
+                padding: 16px 12px 18px;
+            }
+            h1 {
+                font-size: 18px;
+            }
+            .input-panel {
+                flex-direction: column;
+            }
+            .input-panel button {
+                width: 100%;
+            }
+            .button-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>AI 选择题生成器</h1>
+    <p class="subtitle">输入一个知识点关键词，自动生成 10 道相关单选题，并逐题解析。</p>
+
+    <div class="input-panel">
+        <input id="topicInput" type="text" placeholder="例如：Java 基础 / 操作系统进程 / 线性代数向量" />
+        <button id="generateBtn">生成题目</button>
+    </div>
+    <div id="status"></div>
+    <div class="tip">说明：题目与解析通过大模型在线生成，仅用于练习与自测。</div>
+
+    <div id="quizArea" class="hidden">
+        <div id="progress"></div>
+        <div id="questionText"></div>
+        <div id="options"></div>
+
+        <div class="button-row">
+            <button id="submitBtn">提交答案</button>
+            <button id="nextBtn" class="hidden">下一题</button>
+        </div>
+
+        <div id="explanation" class="hidden"></div>
+    </div>
+</div>
+
+<script>
+    // === 使用前在这里填入你的 OpenAI API Key ===
+    const OPENAI_API_KEY = "641e5ccf-8e27-44d9-9144-5984a2237483";
+    // ===========================================
+
+    const topicInput = document.getElementById("topicInput");
+    const generateBtn = document.getElementById("generateBtn");
+    const statusEl = document.getElementById("status");
+    const quizArea = document.getElementById("quizArea");
+    const progressEl = document.getElementById("progress");
+    const questionTextEl = document.getElementById("questionText");
+    const optionsEl = document.getElementById("options");
+    const submitBtn = document.getElementById("submitBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const explanationEl = document.getElementById("explanation");
+
+    let questions = [];
+    let currentIndex = 0;
+    let selectedIndex = null;
+    let answered = false;
+
+    function resetQuizState() {
+        questions = [];
+        currentIndex = 0;
+        selectedIndex = null;
+        answered = false;
+        quizArea.classList.add("hidden");
+        explanationEl.classList.add("hidden");
+        nextBtn.classList.add("hidden");
+        statusEl.textContent = "";
+        statusEl.classList.remove("error");
+    }
+
+    function renderQuestion() {
+        const q = questions[currentIndex];
+        if (!q) return;
+
+        progressEl.textContent = `第 ${currentIndex + 1} / ${questions.length} 题`;
+        questionTextEl.textContent = q.question;
+
+        optionsEl.innerHTML = "";
+        selectedIndex = null;
+        answered = false;
+        explanationEl.classList.add("hidden");
+        explanationEl.innerHTML = "";
+        nextBtn.classList.add("hidden");
+        submitBtn.disabled = false;
+
+        q.options.forEach((opt, idx) => {
+            const label = document.createElement("label");
+            label.className = "option-item";
+            const radio = document.createElement("input");
+            radio.type = "radio";
+            radio.name = "option";
+            radio.value = idx;
+
+            const textSpan = document.createElement("span");
+            textSpan.textContent = opt;
+
+            label.appendChild(radio);
+            label.appendChild(textSpan);
+
+            label.addEventListener("click", (e) => {
+                // 避免二次触发
+                if (answered) return;
+                document.querySelectorAll(".option-item").forEach(el => {
+                    el.classList.remove("selected");
+                });
+                label.classList.add("selected");
+                radio.checked = true;
+                selectedIndex = idx;
+            });
+
+            optionsEl.appendChild(label);
+        });
+    }
+
+    function showExplanation(isCorrect, q) {
+        const correctLetter = String.fromCharCode("A".charCodeAt(0) + q.answer_index);
+        const correctContent = q.options[q.answer_index] || "";
+
+        let html = "";
+        html += `<strong>${isCorrect ? "✅ 回答正确" : "❌ 回答错误"}</strong>`;
+        html += `<p><strong>正确答案：</strong>${correctLetter}. ${correctContent}</p>`;
+        html += `<p><strong>解析：</strong>${q.explanation}</p>`;
+
+        explanationEl.innerHTML = html;
+        explanationEl.classList.remove("hidden");
+    }
+
+    async function generateQuestions(topic) {
+        if (!OPENAI_API_KEY || OPENAI_API_KEY === "YOUR_API_KEY_HERE") {
+            statusEl.textContent = "请先在代码中设置 OPENAI_API_KEY。";
+            statusEl.classList.add("error");
+            return;
+        }
+
+        resetQuizState();
+        statusEl.textContent = "正在向 AI 请求生成题目，请稍候……";
+        generateBtn.disabled = true;
+
+        const systemPrompt = "你是一名严谨的出题老师，为指定知识点生成结构规范的选择题。";
+        const userPrompt = `
+请围绕“${topic}”生成 10 道不同的单选题，要求：
+
+1. 全部用中文出题。
+2. 每道题 4 个选项（A/B/C/D），且只有 1 个正确答案。
+3. 题目难度在“基础~中等”，适合作为课堂小测或自测。
+4. 解析要简短说明知识点和解题思路，可指出常见易错点。
+
+只允许输出严格的 JSON，不要有多余文字、注释或代码块标记。JSON 结构如下（注意字段名不要改）：
+
+{
+  "questions": [
+    {
+      "question": "题干内容，不要带题号",
+      "options": ["A. 选项内容", "B. 选项内容", "C. 选项内容", "D. 选项内容"],
+      "answer_index": 0,
+      "explanation": "该题的解析说明"
+    }
+  ]
+}
+        `.trim();
+
+        try {
+            const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + OPENAI_API_KEY
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini", // 若没有此模型，可改为其他可用模型
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: userPrompt }
+                    ],
+                    temperature: 0.7
+                })
+            });
+
+            if (!res.ok) {
+                throw new Error("HTTP " + res.status);
+            }
+
+            const data = await res.json();
+            const content = (data.choices?.[0]?.message?.content || "").trim();
+
+            // 尝试从返回内容中提取 JSON
+            let jsonText = content;
+            const match = content.match(/\{[\s\S]*\}$/);
+            if (match) {
+                jsonText = match[0];
+            }
+
+            let parsed;
+            try {
+                parsed = JSON.parse(jsonText);
+            } catch (e) {
+                console.error("JSON 解析失败，原始内容：", content);
+                throw new Error("AI 返回的格式无法解析为 JSON。");
+            }
+
+            if (!parsed.questions || !Array.isArray(parsed.questions) || parsed.questions.length === 0) {
+                throw new Error("AI 返回的题目列表为空或格式不正确。");
+            }
+
+            // 简单清洗
+            questions = parsed.questions
+                .filter(q => q.question && Array.isArray(q.options) && q.options.length >= 2)
+                .slice(0, 10);
+
+            if (questions.length === 0) {
+                throw new Error("没有可用的题目。");
+            }
+
+            statusEl.textContent = `已生成 ${questions.length} 道题目，开始作答吧。`;
+            statusEl.classList.remove("error");
+            quizArea.classList.remove("hidden");
+            renderQuestion();
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = "生成题目时出错：" + err.message;
+            statusEl.classList.add("error");
+        } finally {
+            generateBtn.disabled = false;
+        }
+    }
+
+    generateBtn.addEventListener("click", () => {
+        const topic = topicInput.value.trim();
+        if (!topic) {
+            statusEl.textContent = "请先输入一个关键词，例如“Java 基础”。";
+            statusEl.classList.add("error");
+            return;
+        }
+        generateQuestions(topic);
+    });
+
+    submitBtn.addEventListener("click", () => {
+        if (answered) return;
+
+        if (selectedIndex === null) {
+            statusEl.textContent = "请选择一个选项后再提交。";
+            statusEl.classList.add("error");
+            return;
+        }
+        statusEl.textContent = "";
+        statusEl.classList.remove("error");
+
+        const q = questions[currentIndex];
+        const correctIndex = Number(q.answer_index ?? 0);
+
+        answered = true;
+        submitBtn.disabled = true;
+
+        const optionEls = document.querySelectorAll(".option-item");
+        optionEls.forEach((el, idx) => {
+            el.classList.remove("selected");
+            if (idx === correctIndex) {
+                el.classList.add("correct");
+            }
+            if (idx === selectedIndex && selectedIndex !== correctIndex) {
+                el.classList.add("incorrect");
+            }
+        });
+
+        const isCorrect = selectedIndex === correctIndex;
+        showExplanation(isCorrect, q);
+
+        if (currentIndex < questions.length - 1) {
+            nextBtn.textContent = "下一题";
+            nextBtn.classList.remove("hidden");
+        } else {
+            nextBtn.textContent = "完成本轮";
+            nextBtn.classList.remove("hidden");
+        }
+    });
+
+    nextBtn.addEventListener("click", () => {
+        if (currentIndex < questions.length - 1) {
+            currentIndex++;
+            renderQuestion();
+        } else {
+            quizArea.classList.add("hidden");
+            explanationEl.classList.add("hidden");
+            statusEl.textContent = "本轮 10 题已完成，可以换一个新的关键词再练一轮。";
+            statusEl.classList.remove("error");
+        }
+    });
+
+    // 回车直接生成题目
+    topicInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            generateBtn.click();
+        }
+    });
+</script>
+</body>
+</html>

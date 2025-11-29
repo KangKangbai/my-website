@@ -116,17 +116,14 @@
       const elStatus  = document.getElementById('status');
       const btnRestart= document.getElementById('restart');
 
-      // 根据方向/屏幕，选择盘面与雷数（简洁且实际可玩）
       function pickLayout(){
         const portrait = window.matchMedia("(orientation: portrait)").matches;
-        // iPhone 13 390x844：纵向使用 16x10，横向 12x18
         return portrait
           ? { rows: 16, cols: 10, mines: 20 }
           : { rows: 12, cols: 18, mines: 40 };
       }
 
-      // 状态
-      let R,C,M;                 // 行、列、雷
+      let R,C,M;
       let firstClick = true;
       let grid=[], revealed=[], flagged=[], nums=[];
       let gameOver=false, win=false;
@@ -150,12 +147,11 @@
         firstClick=true; gameOver=false; win=false;
         startAt=null; clearInterval(timerId); elTimer.textContent="00:00";
         minesLeft=M; updateMineLeft();
-        grid = new Array(R*C).fill(0); // 1=mine
+        grid = new Array(R*C).fill(0);
         revealed = new Array(R*C).fill(false);
         flagged  = new Array(R*C).fill(false);
         nums = new Array(R*C).fill(0);
         elStatus.textContent="准备";
-        // 渲染棋盘
         elBoard.style.gridTemplateColumns = `repeat(${C}, 1fr)`;
         elBoard.innerHTML="";
         for(let r=0;r<R;r++){
@@ -171,12 +167,10 @@
             elBoard.appendChild(cell);
           }
         }
-        // 根据容器高度调整 cell 字号（更稳）
         fitFont();
       }
 
       function fitFont(){
-        // 粗略按容器高度/行数估一份字号，写入 CSS 变量 --cell-font
         const rect = elBoard.getBoundingClientRect();
         const gap = parseFloat(getComputedStyle(elBoard).gap||'6');
         const cellSize = Math.floor((rect.height - gap*(R-1)) / R);
@@ -184,19 +178,16 @@
         document.documentElement.style.setProperty('--cell-font', px + 'px');
       }
 
-      // 放置地雷，保证首击不死
       function placeMines(safeR, safeC){
         let left=M;
         while(left>0){
           const r = Math.floor(Math.random()*R);
           const c = Math.floor(Math.random()*C);
           if(grid[idx(r,c)]===1) continue;
-          // 避免首击 3x3 区域
           if(Math.abs(r-safeR)<=1 && Math.abs(c-safeC)<=1) continue;
           grid[idx(r,c)] = 1;
           left--;
         }
-        // 计算数字
         for(let r=0;r<R;r++){
           for(let c=0;c<C;c++){
             const i = idx(r,c);
@@ -236,13 +227,11 @@
         }
 
         if(grid[i]===1){
-          // 踩雷
           revealed[i]=true;
           renderCell(r,c);
           lose();
           return;
         }
-        // BFS 翻空
         const q=[[r,c]];
         while(q.length){
           const [cr,cc]=q.shift();
@@ -265,7 +254,6 @@
         const i=idx(r,c);
         if(revealed[i]) return;
         if(firstClick){
-          // 首次操作如果是长按，也先布雷并启动
           placeMines(r,c);
           firstClick=false;
           elStatus.textContent="进行中";
@@ -279,7 +267,6 @@
       }
 
       function chordOpen(r,c){
-        // 已翻开的数字格，若周围旗数==数字，则自动翻开其他未翻格
         const i = idx(r,c);
         if(!revealed[i] || nums[i]<=0) return;
         const neigh = neighbours(r,c);
@@ -295,7 +282,6 @@
       function lose(){
         gameOver=true; win=false; clearInterval(timerId);
         elStatus.textContent="踩雷";
-        // 全部翻开地雷
         for(let r=0;r<R;r++) for(let c=0;c<C;c++){
           const i=idx(r,c);
           if(grid[i]===1){ revealed[i]=true; }
@@ -304,7 +290,6 @@
       }
       function checkWin(){
         if(gameOver) return;
-        // 胜利条件：所有非雷格已翻开
         let opened=0;
         for(let i=0;i<R*C;i++){
           if(revealed[i]) opened++;
@@ -312,7 +297,6 @@
         if(opened === R*C - M){
           gameOver=true; win=true; clearInterval(timerId);
           elStatus.textContent="通关";
-          // 自动把剩余格标旗
           for(let i=0;i<R*C;i++){
             if(!revealed[i] && !flagged[i]){ flagged[i]=true; minesLeft--; }
           }
@@ -341,16 +325,26 @@
         for(let r=0;r<R;r++) for(let c=0;c<C;c++) renderCell(r,c);
       }
 
-      // 点击/触摸：短按翻开，长按（≥350ms）插旗；已翻数字上点按尝试“快速开空”
-      function onClick(e){
-        e.preventDefault();
-        const cell=e.currentTarget;
+      // --- START: MODIFIED CODE ---
+
+      // 1. 将点击逻辑提取到新函数中
+      function handleCellClick(cell) {
         const r=+cell.dataset.r, c=+cell.dataset.c;
         const i=idx(r,c);
-        if(revealed[i] && nums[i]>0){ chordOpen(r,c); return; }
+        if(revealed[i] && nums[i]>0){
+          chordOpen(r,c);
+          return;
+        }
         reveal(r,c);
       }
 
+      // 2. 原 onClick 主要用于鼠标点击，现在调用新函数
+      function onClick(e){
+        e.preventDefault();
+        handleCellClick(e.currentTarget);
+      }
+
+      // 3. 修改 setupTouchHandlers 以直接调用逻辑，而非 .click()
       function setupTouchHandlers(cell){
         let pressTimer=null, moved=false;
         const start = (e)=>{
@@ -360,10 +354,9 @@
             const r=+cell.dataset.r, c=+cell.dataset.c;
             toggleFlag(r,c);
             pressTimer=null;
-          }, 350); // 长按阈值
+          }, 350);
         };
         const move = ()=>{
-          // 发生滑动则取消长按
           moved=true;
           if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; }
         };
@@ -371,7 +364,8 @@
           e.preventDefault();
           if(pressTimer){
             clearTimeout(pressTimer); pressTimer=null;
-            if(!moved) cell.click(); // 触发短按=翻开
+            // 改动点：直接调用 handleCellClick，而不是 cell.click()
+            if(!moved) handleCellClick(cell);
           }
         };
         cell.addEventListener('touchstart', start, {passive:false});
@@ -379,22 +373,20 @@
         cell.addEventListener('touchend', end, {passive:false});
         cell.addEventListener('touchcancel', end, {passive:false});
       }
+      
+      // --- END: MODIFIED CODE ---
 
-      // 重开、旋转/尺寸变化时自适应
       btnRestart.addEventListener('click', reset);
       window.addEventListener('resize', ()=>{
         const oldR=R, oldC=C;
         const layout = pickLayout();
         if(layout.rows!==oldR || layout.cols!==oldC){
-          // 方向/尺寸变化较大：直接重开
           reset();
         }else{
-          // 仅字号重算，避免跳局
           setTimeout(fitFont, 50);
         }
       }, {passive:true});
 
-      // 初始化
       reset();
     })();
   </script>
