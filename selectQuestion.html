@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <title>选择题生成器（API调用）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f7;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 720px;
+            background: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .input-panel {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .input-panel input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .input-panel button {
+            padding: 8px 12px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        #status {
+            min-height: 20px;
+            margin: 10px 0;
+            color: #d00;
+            font-size: 14px;
+        }
+        #quizArea.hidden { display: none; }
+        #options .option-item {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            cursor: pointer;
+        }
+        .selected { background: #eef4ff; border-color: #2563eb; }
+        .correct { background: #e8ffe8; border-color: #22c55e; }
+        .incorrect { background: #ffe8e8; border-color: #ef4444; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>AI 选择题生成器（豆包版）</h1>
+
+    <div class="input-panel">
+        <input id="topicInput" placeholder="例如：Java基础">
+        <button id="generateBtn">生成题目</button>
+    </div>
+
+    <div id="status"></div>
+
+    <div id="quizArea" class="hidden">
+        <div id="progress"></div>
+        <div id="questionText"></div>
+        <div id="options"></div>
+        <button id="submitBtn">提交答案</button>
+        <button id="nextBtn">下一题</button>
+        <div id="explanation"></div>
+    </div>
+</div>
+
+<script>
+// ===========================
+// 1. 这里填你的 API Key
+// （在“API Key 管理”页面看到的那串，别泄露给别人）
+// ===========================
+const API_KEY = "c86a72ef-4d5b-43ed-b5a5-7a9ff597d83e";
+
+// 2. 模型 ID：直接用示例里的 deepseek-v3.1-terminus
+const MODEL_ID = "deepseek-v3-1-terminus"; // 注意横杠和点按示例写
+// ===========================
+
+let questions = [];
+let currentIndex = 0;
+
+async function generateQuestions(topic) {
+    const status = document.getElementById("status");
+    status.style.color = "#555";
+    status.innerText = "正在生成题目...";
+
+    try {
+        const res = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + API_KEY
+            },
+            body: JSON.stringify({
+                model: MODEL_ID,
+                messages: [
+                    { role: "system", content: "你是严谨的出题老师，根据指定主题生成结构化选择题。" },
+                    { role: "user", content: `
+请围绕“${topic}”生成 10 道单选题，必须严格输出以下 JSON 格式（不要输出多余说明文字）：
+{
+  "questions": [
+    {
+      "question": "题干，不要带题号",
+      "options": ["A 选项", "B 选项", "C 选项", "D 选项"],
+      "answer_index": 0,
+      "explanation": "简要解析"
+    }
+  ]
+}`.trim() }
+                ]
+            })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            const msg = data?.error?.message || ("HTTP " + res.status);
+            throw new Error(msg);
+        }
+
+        const content = (data.choices?.[0]?.message?.content || "").trim();
+
+        let parsed;
+        try {
+            parsed = JSON.parse(content);
+        } catch (e) {
+            console.error("模型返回内容：", content);
+            throw new Error("模型返回的内容不是合法 JSON，请稍后重试或换个主题。");
+        }
+
+        if (!parsed.questions || !Array.isArray(parsed.questions) || parsed.questions.length === 0) {
+            throw new Error("JSON 中没有有效的 questions 字段。");
+        }
+
+        questions = parsed.questions;
+        currentIndex = 0;
+
+        status.innerText = "";
+        status.style.color = "#d00";
+        document.getElementById("quizArea").classList.remove("hidden");
+        document.getElementById("explanation").innerText = "";
+        renderQuestion();
+    } catch (err) {
+        console.error(err);
+        status.style.color = "#d00";
+        status.innerText = "生成失败：" + err.message;
+    }
+}
+
+function renderQuestion() {
+    const q = questions[currentIndex];
+    document.getElementById("progress").innerText =
+        `第 ${currentIndex + 1} / ${questions.length} 题`;
+    document.getElementById("questionText").innerText = q.question;
+
+    const optionsDiv = document.getElementById("options");
+    optionsDiv.innerHTML = "";
+
+    q.options.forEach((op, idx) => {
+        const div = document.createElement("div");
+        div.className = "option-item";
+        div.innerText = op;
+        div.onclick = () => {
+            document.querySelectorAll(".option-item")
+                .forEach(x => x.className = "option-item");
+            div.classList.add("selected");
+            q.selected = idx;
+        };
+        optionsDiv.appendChild(div);
+    });
+}
+
+document.getElementById("generateBtn").onclick = () => {
+    const topic = document.getElementById("topicInput").value.trim();
+    if (!topic) {
+        document.getElementById("status").style.color = "#d00";
+        document.getElementById("status").innerText = "请先输入一个关键词。";
+        return;
+    }
+    generateQuestions(topic);
+};
+
+document.getElementById("submitBtn").onclick = () => {
+    const q = questions[currentIndex];
+    if (q.selected === undefined) return;
+
+    const optionDivs = document.querySelectorAll(".option-item");
+    optionDivs.forEach((div, i) => {
+        if (i === q.answer_index) div.classList.add("correct");
+        if (i === q.selected && q.selected !== q.answer_index)
+            div.classList.add("incorrect");
+    });
+
+    document.getElementById("explanation").innerText = "解析：" + q.explanation;
+};
+
+document.getElementById("nextBtn").onclick = () => {
+    currentIndex++;
+    if (currentIndex >= questions.length) {
+        alert("本轮题目已完成！");
+        return;
+    }
+    document.getElementById("explanation").innerText = "";
+    renderQuestion();
+};
+</script>
+
+</body>
+</html>
