@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简约 iOS 计时器</title>
+    <style>
+        /* 1. 核心布局和全局样式 */
+        :root {
+            --bg-color: #f7f7f7;
+            --button-bg: rgba(255, 255, 255, 0.7); /* 按钮默认背景，半透明 */
+            --text-color: #333;
+            --accent-color: #007aff; /* 经典的 iOS 蓝色 */
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* 柔和阴影 */
+            --active-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            --transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1); /* 平滑过渡 */
+        }
+
+        body {
+            margin: 0;
+            /* 使用系统字体，达到 iOS 的感觉 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden; /* 防止滚动 */
+        }
+
+        /* 2. 按钮容器 */
+        .timer-container {
+            position: relative;
+        }
+
+        /* 3. 大的圆形按钮 */
+        #timerButton {
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            background-color: var(--button-bg);
+            border: none;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            outline: none; /* 移除点击轮廓 */
+            transition: var(--transition);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            
+            /* 毛玻璃效果 */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* 为 Safari 兼容 */
+        }
+
+        /* 4. 按钮交互 */
+        #timerButton:hover {
+            transform: translateY(-2px);
+        }
+
+        #timerButton:active {
+            transform: scale(0.98);
+            box-shadow: var(--active-shadow);
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* 5. 运行状态下的样式 */
+        #timerButton.running {
+            background-color: var(--accent-color);
+            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.4); /* 蓝色柔和阴影 */
+        }
+
+        #timerButton.running #timeDisplay {
+            color: white; /* 文本颜色变为白色 */
+        }
+
+        /* 6. 时间显示文本 */
+        #timeDisplay {
+            font-size: 5rem; /* 大号字体 */
+            font-weight: 200; /* 薄字体，高级感 */
+            color: var(--text-color);
+            transition: color 0.3s ease-out;
+            user-select: none; /* 防止文本被选中 */
+        }
+    </style>
+</head>
+<body>
+
+    <main>
+        <div class="timer-container">
+            <button id="timerButton">
+                <span id="timeDisplay">00:00</span>
+            </button>
+        </div>
+    </main>
+
+    <script>
+        // 1. 获取 DOM 元素
+        const timerButton = document.getElementById('timerButton');
+        const timeDisplay = document.getElementById('timeDisplay');
+
+        // 2. 计时器变量
+        let startTime = 0;
+        let elapsedTime = 0;
+        let timerInterval = null;
+        let isRunning = false;
+
+        // 3. 格式化时间为 MM:SS
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+
+            // 使用 padStart 确保始终是 2 位数
+            const paddedMinutes = String(minutes).padStart(2, '0');
+            const paddedSeconds = String(seconds).padStart(2, '0');
+
+            return `${paddedMinutes}:${paddedSeconds}`;
+        }
+
+        // 4. 更新时间显示
+        function updateTime() {
+            elapsedTime = Date.now() - startTime;
+            timeDisplay.textContent = formatTime(elapsedTime);
+        }
+
+        // 5. 开始计时
+        function startTimer() {
+            if (!isRunning) {
+                // 如果是第一次或停止后开始，startTime 是当前时间
+                startTime = Date.now();
+                
+                // 设置定时器，每 10 毫秒更新一次
+                timerInterval = setInterval(updateTime, 10);
+                isRunning = true;
+                timerButton.classList.add('running'); // 添加运行状态样式
+            }
+        }
+
+        // 6. 停止计时
+        function stopTimer() {
+            if (isRunning) {
+                clearInterval(timerInterval); // 清除定时器
+                isRunning = false;
+                timerButton.classList.remove('running'); // 移除运行状态样式
+            }
+        }
+
+        // 7. 重置计时器
+        function resetTimer() {
+            stopTimer(); // 确保停止
+            elapsedTime = 0;
+            timeDisplay.textContent = '00:00';
+        }
+
+        // 8. 按钮点击事件处理
+        timerButton.addEventListener('click', () => {
+            if (isRunning) {
+                // 如果正在运行，重置并重新开始
+                resetTimer();
+                startTimer();
+            } else {
+                // 如果未运行，直接开始
+                startTimer();
+            }
+        });
+    </script>
+</body>
+</html>
