@@ -27,11 +27,17 @@
     [data-theme="dark"] { --bg:#0b1020; --card:#0f172a; --text:#e5e7eb; --muted:#94a3b8; --border:#1f2937; --shadow: 0 6px 24px rgba(0,0,0,.35); }
 
     * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    
     body {
-      margin: 0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Noto Sans SC",Arial,sans-serif;
+      min-height: 100vh; /* 改为最小高度为100%视口高度，允许随内容自动撑开 */
+      margin: 0; 
+      font-family: system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Noto Sans SC",Arial,sans-serif;
       background: radial-gradient(1200px 600px at 10% -10%, var(--brand-ghost), transparent 60%), var(--bg);
-      color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+      background-attachment: fixed; /* 背景固定，防止滚动时渐变图形变形或截断 */
+      color: var(--text); 
+      line-height: 1.6; 
+      -webkit-font-smoothing: antialiased; 
+      text-rendering: optimizeLegibility;
     }
 
     .container { width: min(1080px, 92vw); margin: 0 auto; }
@@ -104,7 +110,7 @@
   <main class="container">
     <section class="hero" aria-labelledby="hero-title">
       <h1 id="hero-title">你好，我是 KangKang</h1>
-      <p class="subtitle">欢迎来到我的网站：目前上线了 3 个小游戏、2 个小工具，后续会陆续加入工具箱、学习笔记与更多实践项目。</p>
+      <p class="subtitle">欢迎来到我的网站：目前上线了 3 个小游戏、4 个小工具，后续会陆续加入工具箱、学习笔记与更多实践项目。</p>
     </section>
 
     <!-- 应用区：可扩展卡片栅格 -->
@@ -173,6 +179,17 @@
         </div>
         <div class="actions">
           <a class="btn btn-primary" href="./timer.html">立即开始</a>
+        </div>
+      </article>
+
+      <!-- toXiaobo（已上线） -->
+      <article class="card col-6 col-4" aria-labelledby="game-snake-title">
+        <div>
+          <h3 id="game-snake-title">💌 toXiaobo <span class="tag" title="已上线">LIVE</span></h3>
+          <p>专为 Xiaobo 设计的页面，包含互动元素与惊喜内容。</p>
+        </div>
+        <div class="actions">
+          <a class="btn btn-primary" href="./toXiaobo.html">立即开始</a>
         </div>
       </article>
 
