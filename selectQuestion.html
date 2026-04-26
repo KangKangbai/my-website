@@ -2,73 +2,200 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8" />
-    <title>选择题生成器（API调用）</title>
+    <title>AI 选择题生成器</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* iOS 风格基础样式 */
+        :root {
+            --ios-bg: #F2F2F7;
+            --ios-card: #FFFFFF;
+            --ios-blue: #007AFF;
+            --ios-blue-active: #005ecb;
+            --ios-green: #34C759;
+            --ios-red: #FF3B30;
+            --ios-gray: #8E8E93;
+            --ios-text: #1C1C1E;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f7;
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background: var(--ios-bg);
+            color: var(--ios-text);
             margin: 0;
             padding: 20px;
             display: flex;
             justify-content: center;
+            -webkit-font-smoothing: antialiased;
         }
+
         .container {
             width: 100%;
-            max-width: 720px;
-            background: #fff;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            max-width: 600px;
+            background: var(--ios-card);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.04);
         }
+
         h1 {
             text-align: center;
-            margin-bottom: 12px;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 24px;
         }
+
         .input-panel {
             display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
+            gap: 12px;
+            margin-bottom: 20px;
         }
+
         .input-panel input {
             flex: 1;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 16px;
+            background: var(--ios-bg);
+            border: none;
+            border-radius: 12px;
+            outline: none;
+            transition: box-shadow 0.2s;
         }
-        .input-panel button {
-            padding: 8px 12px;
-            background: #2563eb;
+
+        .input-panel input:focus {
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            background: var(--ios-blue);
             color: #fff;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
         }
+
+        button:active {
+            transform: scale(0.96);
+            background: var(--ios-blue-active);
+        }
+
+        button:disabled {
+            background: #D1D1D6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         #status {
-            min-height: 20px;
-            margin: 10px 0;
-            color: #d00;
+            text-align: center;
+            margin-bottom: 16px;
             font-size: 14px;
+            color: var(--ios-gray);
+            min-height: 20px;
         }
-        #quizArea.hidden { display: none; }
+
+        .hidden { display: none !important; }
+
+        /* 答题区样式 */
+        #quizArea {
+            animation: fadeIn 0.4s ease;
+        }
+
+        #progress {
+            font-size: 14px;
+            color: var(--ios-gray);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        #questionText {
+            font-size: 18px;
+            font-weight: 500;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
         #options .option-item {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            margin-bottom: 6px;
+            padding: 14px 16px;
+            background: var(--ios-bg);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            margin-bottom: 10px;
             cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s ease;
         }
-        .selected { background: #eef4ff; border-color: #2563eb; }
-        .correct { background: #e8ffe8; border-color: #22c55e; }
-        .incorrect { background: #ffe8e8; border-color: #ef4444; }
+
+        /* 交互状态 */
+        #options .option-item:hover:not(.locked) {
+            background: #E5E5EA;
+        }
+
+        .option-item.selected {
+            background: #E1F0FF !important;
+            border-color: var(--ios-blue) !important;
+        }
+
+        .option-item.correct {
+            background: #E8F8F0 !important;
+            border-color: var(--ios-green) !important;
+            color: #0E5E2F;
+        }
+
+        .option-item.incorrect {
+            background: #FFEBEE !important;
+            border-color: var(--ios-red) !important;
+            color: #8E0000;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+        }
+
+        #explanation {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--ios-bg);
+            border-radius: 12px;
+            font-size: 15px;
+            line-height: 1.5;
+            color: var(--ios-text);
+            display: none;
+        }
+
+        /* 结果分析区 */
+        #resultArea {
+            text-align: center;
+            animation: fadeIn 0.4s ease;
+        }
+        
+        .chart-container {
+            width: 250px;
+            height: 250px;
+            margin: 0 auto 20px auto;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>AI 选择题生成器（豆包版）</h1>
+    <h1>知识自测</h1>
 
-    <div class="input-panel">
-        <input id="topicInput" placeholder="例如：Java基础">
+    <div class="input-panel" id="inputPanel">
+        <input id="topicInput" placeholder="例如：Java集合框架底层原理">
         <button id="generateBtn">生成题目</button>
     </div>
 
@@ -78,33 +205,51 @@
         <div id="progress"></div>
         <div id="questionText"></div>
         <div id="options"></div>
-        <button id="submitBtn">提交答案</button>
-        <button id="nextBtn">下一题</button>
+        
+        <div class="action-buttons">
+            <button id="submitBtn" disabled>提交答案</button>
+            <button id="nextBtn" class="hidden">下一题</button>
+        </div>
+        
         <div id="explanation"></div>
+    </div>
+
+    <div id="resultArea" class="hidden">
+        <h2>掌握情况分析</h2>
+        <div class="chart-container">
+            <canvas id="resultChart"></canvas>
+        </div>
+        <p id="scoreText" style="font-size: 18px; font-weight: 600; margin-bottom: 24px;"></p>
+        <button onclick="location.reload()">重新开始</button>
     </div>
 </div>
 
 <script>
 // ===========================
-// 1. 这里填你的 API Key
-// （在“API Key 管理”页面看到的那串，别泄露给别人）
+// 1. 填入你的 DeepSeek 官方 API Key
 // ===========================
-const API_KEY = "c86a72ef-4d5b-43ed-b5a5-7a9ff597d83e";
+const API_KEY = "sk-7b94fcd7ab1f4e43b1960e900f88ab54";
 
-// 2. 模型 ID：直接用示例里的 deepseek-v3.1-terminus
-const MODEL_ID = "deepseek-v3-1-terminus"; // 注意横杠和点按示例写
+// 2. 官方模型 ID
+const MODEL_ID = "deepseek-v4-flash"; 
 // ===========================
 
 let questions = [];
 let currentIndex = 0;
+let correctCount = 0;
 
 async function generateQuestions(topic) {
     const status = document.getElementById("status");
-    status.style.color = "#555";
-    status.innerText = "正在生成题目...";
+    const generateBtn = document.getElementById("generateBtn");
+    const topicInput = document.getElementById("topicInput");
+    
+    status.style.color = "var(--ios-gray)";
+    status.innerText = "正在呼叫 DeepSeek 生成题目，请稍候...";
+    generateBtn.disabled = true;
+    topicInput.disabled = true;
 
     try {
-        const res = await fetch("https://ark.cn-beijing.volces.com/api/v3/chat/completions", {
+        const res = await fetch("https://api.deepseek.com/chat/completions", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -112,17 +257,25 @@ async function generateQuestions(topic) {
             },
             body: JSON.stringify({
                 model: MODEL_ID,
+                // 强制要求返回 JSON 对象，提升稳定性
+                response_format: { type: "json_object" }, 
                 messages: [
-                    { role: "system", content: "你是严谨的出题老师，根据指定主题生成结构化选择题。" },
-                    { role: "user", content: `
-请围绕“${topic}”生成 10 道单选题，必须严格输出以下 JSON 格式（不要输出多余说明文字）：
+                    { 
+                        role: "system", 
+                        content: "你是一个严谨的计算机专业出题老师。请输出 JSON 格式。包含一个 'questions' 数组。" 
+                    },
+                    { 
+                        role: "user", 
+                        content: `
+请围绕“${topic}”生成 5 道单选题（为加快速度，此处以5题为例，你可自行改为10题）。
+必须严格输出以下 JSON 格式，不要包含任何 markdown 代码块标识符，直接输出纯 JSON：
 {
   "questions": [
     {
-      "question": "题干，不要带题号",
-      "options": ["A 选项", "B 选项", "C 选项", "D 选项"],
+      "question": "题干内容",
+      "options": ["选项 A", "选项 B", "选项 C", "选项 D"],
       "answer_index": 0,
-      "explanation": "简要解析"
+      "explanation": "简要解析为什么选这个"
     }
   ]
 }`.trim() }
@@ -133,8 +286,7 @@ async function generateQuestions(topic) {
         const data = await res.json();
 
         if (!res.ok) {
-            const msg = data?.error?.message || ("HTTP " + res.status);
-            throw new Error(msg);
+            throw new Error(data?.error?.message || ("HTTP " + res.status));
         }
 
         const content = (data.choices?.[0]?.message?.content || "").trim();
@@ -144,7 +296,7 @@ async function generateQuestions(topic) {
             parsed = JSON.parse(content);
         } catch (e) {
             console.error("模型返回内容：", content);
-            throw new Error("模型返回的内容不是合法 JSON，请稍后重试或换个主题。");
+            throw new Error("模型返回的内容不是合法 JSON。");
         }
 
         if (!parsed.questions || !Array.isArray(parsed.questions) || parsed.questions.length === 0) {
@@ -153,23 +305,36 @@ async function generateQuestions(topic) {
 
         questions = parsed.questions;
         currentIndex = 0;
+        correctCount = 0;
 
+        document.getElementById("inputPanel").classList.add("hidden");
         status.innerText = "";
-        status.style.color = "#d00";
         document.getElementById("quizArea").classList.remove("hidden");
-        document.getElementById("explanation").innerText = "";
+        
         renderQuestion();
+
     } catch (err) {
         console.error(err);
-        status.style.color = "#d00";
+        status.style.color = "var(--ios-red)";
         status.innerText = "生成失败：" + err.message;
+        generateBtn.disabled = false;
+        topicInput.disabled = false;
     }
 }
 
 function renderQuestion() {
     const q = questions[currentIndex];
-    document.getElementById("progress").innerText =
-        `第 ${currentIndex + 1} / ${questions.length} 题`;
+    
+    // 重置 UI 状态
+    document.getElementById("submitBtn").classList.remove("hidden");
+    document.getElementById("submitBtn").disabled = true; // 没选之前禁止提交
+    document.getElementById("nextBtn").classList.add("hidden");
+    
+    const expDiv = document.getElementById("explanation");
+    expDiv.style.display = "none";
+    expDiv.innerText = "";
+
+    document.getElementById("progress").innerText = `第 ${currentIndex + 1} / ${questions.length} 题`;
     document.getElementById("questionText").innerText = q.question;
 
     const optionsDiv = document.getElementById("options");
@@ -180,49 +345,124 @@ function renderQuestion() {
         div.className = "option-item";
         div.innerText = op;
         div.onclick = () => {
+            // 如果已经提交过了，锁定选项不可改
+            if (q.submitted) return; 
+
             document.querySelectorAll(".option-item")
-                .forEach(x => x.className = "option-item");
+                .forEach(x => x.classList.remove("selected"));
             div.classList.add("selected");
             q.selected = idx;
+            document.getElementById("submitBtn").disabled = false;
         };
         optionsDiv.appendChild(div);
+    });
+}
+
+// 提交答案按钮逻辑
+document.getElementById("submitBtn").onclick = () => {
+    const q = questions[currentIndex];
+    if (q.selected === undefined) return;
+
+    q.submitted = true; // 标记已提交
+
+    const optionDivs = document.querySelectorAll(".option-item");
+    optionDivs.forEach((div, i) => {
+        div.classList.add("locked"); // 加上锁定样式以取消 hover 效果
+        
+        if (i === q.answer_index) {
+            div.classList.add("correct"); // 正确答案标绿
+        } else if (i === q.selected && q.selected !== q.answer_index) {
+            div.classList.add("incorrect"); // 选错的标红
+        } else {
+            // 其他未选且错误的选项变淡
+            div.style.opacity = "0.5";
+        }
+    });
+
+    // 统计正确率
+    if (q.selected === q.answer_index) {
+        correctCount++;
+    }
+
+    // 显示解析
+    const expDiv = document.getElementById("explanation");
+    expDiv.innerHTML = `<strong>解析：</strong><br>${q.explanation}`;
+    expDiv.style.display = "block";
+
+    // 切换按钮
+    document.getElementById("submitBtn").classList.add("hidden");
+    const nextBtn = document.getElementById("nextBtn");
+    nextBtn.classList.remove("hidden");
+    
+    // 如果是最后一题，按钮文字改为“查看结果”
+    if (currentIndex === questions.length - 1) {
+        nextBtn.innerText = "查看结果";
+    } else {
+        nextBtn.innerText = "下一题";
+    }
+};
+
+// 下一题/查看结果按钮逻辑
+document.getElementById("nextBtn").onclick = () => {
+    if (currentIndex >= questions.length - 1) {
+        showAnalysis();
+        return;
+    }
+    currentIndex++;
+    renderQuestion();
+};
+
+// 渲染最终掌握情况分析
+function showAnalysis() {
+    document.getElementById("quizArea").classList.add("hidden");
+    document.getElementById("resultArea").classList.remove("hidden");
+    document.getElementById("status").innerText = "";
+
+    const total = questions.length;
+    const incorrectCount = total - correctCount;
+    const accuracy = Math.round((correctCount / total) * 100);
+
+    const scoreText = document.getElementById("scoreText");
+    scoreText.innerText = `准确率：${accuracy}% (${correctCount}/${total})`;
+    if (accuracy >= 80) scoreText.style.color = "var(--ios-green)";
+    else if (accuracy >= 60) scoreText.style.color = "var(--ios-blue)";
+    else scoreText.style.color = "var(--ios-red)";
+
+    // 绘制 Chart.js 环形图
+    const ctx = document.getElementById('resultChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['答对', '答错'],
+            datasets: [{
+                data: [correctCount, incorrectCount],
+                backgroundColor: [
+                    '#34C759', // iOS Green
+                    '#FF3B30'  // iOS Red
+                ],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
     });
 }
 
 document.getElementById("generateBtn").onclick = () => {
     const topic = document.getElementById("topicInput").value.trim();
     if (!topic) {
-        document.getElementById("status").style.color = "#d00";
+        document.getElementById("status").style.color = "var(--ios-red)";
         document.getElementById("status").innerText = "请先输入一个关键词。";
         return;
     }
     generateQuestions(topic);
 };
-
-document.getElementById("submitBtn").onclick = () => {
-    const q = questions[currentIndex];
-    if (q.selected === undefined) return;
-
-    const optionDivs = document.querySelectorAll(".option-item");
-    optionDivs.forEach((div, i) => {
-        if (i === q.answer_index) div.classList.add("correct");
-        if (i === q.selected && q.selected !== q.answer_index)
-            div.classList.add("incorrect");
-    });
-
-    document.getElementById("explanation").innerText = "解析：" + q.explanation;
-};
-
-document.getElementById("nextBtn").onclick = () => {
-    currentIndex++;
-    if (currentIndex >= questions.length) {
-        alert("本轮题目已完成！");
-        return;
-    }
-    document.getElementById("explanation").innerText = "";
-    renderQuestion();
-};
 </script>
-
 </body>
 </html>
