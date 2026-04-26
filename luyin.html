@@ -241,17 +241,31 @@ aiBtn.addEventListener('click', async () => {
                     };
 
                     mediaRecorder.onstop = () => {
-                        // 录音结束，生成本地播放链接
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                        const audioUrl = URL.createObjectURL(audioBlob);
-                        
-                        audioPlayer.src = audioUrl;
-                        downloadLink.href = audioUrl;
-                        playbackBox.style.display = 'flex';
-                        
-                        // 释放麦克风资源
-                        stream.getTracks().forEach(track => track.stop());
-                    };
+    // 1. 获取当前浏览器实际使用的录音格式类型
+    // 如果获取不到，退化为通用的 audio/mp4 (对 iOS 比较友好)
+    const mimeType = mediaRecorder.mimeType || 'audio/mp4'; 
+    
+    // 2. 使用实际类型生成 Blob
+    const audioBlob = new Blob(audioChunks, { type: mimeType });
+    const audioUrl = URL.createObjectURL(audioBlob);
+    
+    audioPlayer.src = audioUrl;
+    
+    // 3. 根据 mimeType 动态设置下载文件的后缀名
+    let extension = 'webm'; // 默认给安卓/PC Chrome 使用 webm
+    if (mimeType.includes('mp4') || mimeType.includes('aac')) {
+        extension = 'm4a';  // iOS Safari 通常录制为 mp4/aac，用 m4a 后缀更规范
+    } else if (mimeType.includes('ogg')) {
+        extension = 'ogg';
+    }
+
+    downloadLink.href = audioUrl;
+    downloadLink.download = `my_recording.${extension}`; // 动态后缀名
+    playbackBox.style.display = 'flex';
+    
+    // 释放麦克风资源
+    stream.getTracks().forEach(track => track.stop());
+};
 
                     mediaRecorder.start();
                     isRecording = true;
