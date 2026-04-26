@@ -145,11 +145,11 @@
         <button id="aiBtn" class="apple-btn">获取今日趣闻</button>
         <div id="aiContent" class="content-box"></div>
 
-        <button id="recordBtn" class="apple-btn record-btn">🔴 开始录音</button>
+        <button id="recordBtn" class="apple-btn record-btn">🔴 开始记录</button>
         
         <div id="playbackBox" class="playback-box">
             <audio id="audioPlayer" controls></audio>
-            <a id="downloadLink" class="download-link" download="my_recording.webm">保存录音到本地</a>
+            <a id="downloadLink" class="download-link" download="my_recording.webm">保存记录到本地</a>
         </div>
     </div>
 
@@ -160,8 +160,8 @@ const aiContent = document.getElementById('aiContent');
 
 // 【重要】在这里填入你申请的大模型 API Key
 // 这里以 DeepSeek 或兼容 OpenAI 格式的 API 为例
-const API_KEY = "ark-595704f6-c477-48bb-b7ac-474d27300654-4455f"; 
-const API_URL = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"; // 替换为对应厂商的 API 地址
+const API_KEY = "sk-7b94fcd7ab1f4e43b1960e900f88ab54"; 
+const API_URL = "https://api.deepseek.com/chat/completions"; // 替换为对应厂商的 API 地址
 
 aiBtn.addEventListener('click', async () => {
     if (API_KEY === 'sk-你的真实API密钥填在这里') {
@@ -182,7 +182,7 @@ aiBtn.addEventListener('click', async () => {
                 'Authorization': `Bearer ${API_KEY}`
             },
             body: JSON.stringify({
-                model: "ep-20260422164316-kjqt9", // 替换为你使用的模型名称
+                model: "deepseek-v4-flash", // 替换为你使用的模型名称
                 messages: [
                     {
                         "role": "system",
