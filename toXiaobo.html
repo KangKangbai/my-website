@@ -7,261 +7,105 @@
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at center, #1c1c2b 0%, #0d0d12 80%, #000000 100%);
-            color: #fff;
-            font-family: 'Noto Sans SC', sans-serif;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: #000;
+            color: #fff; font-family: 'Noto Sans SC', sans-serif;
+            overflow: hidden; display: flex; justify-content: center; align-items: center;
         }
 
-        /* ---------------- 登录拦截界面 ---------------- */
+        /* ---------------- Canvas 粒子背景 ---------------- */
+        #bg-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;
+        }
+
+        /* ---------------- 登录界面 ---------------- */
         #login-screen {
-            position: absolute;
-            width: 100%;
-            height: 100%;
+            position: absolute; width: 100%; height: 100%; z-index: 100;
             background: radial-gradient(circle at center, #1c1c2b 0%, #0d0d12 80%, #000000 100%);
-            z-index: 100;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: opacity 1s ease;
+            display: flex; justify-content: center; align-items: center; transition: opacity 1s ease;
         }
         .login-box {
-            text-align: center;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 40px 50px;
-            border-radius: 15px;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            text-align: center; background: rgba(255, 255, 255, 0.05); padding: 40px 5%;
+            width: 80%; max-width: 350px; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
         }
-        .login-title {
-            font-size: 22px;
-            color: #ffe6e6;
-            margin-bottom: 25px;
-            letter-spacing: 3px;
-        }
+        .login-title { font-size: 22px; color: #ffe6e6; margin-bottom: 25px; letter-spacing: 3px; }
         #pwd-input {
-            padding: 12px 20px;
-            font-size: 16px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 71, 87, 0.5);
-            background: rgba(0, 0, 0, 0.3);
-            color: #fff;
-            outline: none;
-            text-align: center;
-            margin-bottom: 20px;
-            width: 200px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            letter-spacing: 2px;
-        }
-        #pwd-input:focus {
-            border-color: #ff4757;
-            box-shadow: 0 0 10px rgba(255, 71, 87, 0.3);
+            width: 100%; max-width: 200px; box-sizing: border-box; padding: 12px 20px;
+            font-size: 16px; border-radius: 8px; border: 1px solid rgba(255, 71, 87, 0.5);
+            background: rgba(0, 0, 0, 0.3); color: #fff; outline: none; text-align: center;
+            margin: 0 auto 20px auto; display: block; letter-spacing: 2px;
         }
         #pwd-btn {
-            padding: 10px 35px;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            background: #ff4757;
-            color: #fff;
-            cursor: pointer;
-            transition: background 0.3s, transform 0.1s;
-            letter-spacing: 2px;
+            padding: 10px 35px; font-size: 16px; border: none; border-radius: 8px;
+            background: #ff4757; color: #fff; cursor: pointer; transition: background 0.3s;
         }
-        #pwd-btn:hover { background: #ff6b81; }
-        #pwd-btn:active { transform: scale(0.95); }
+        /* 修复：补回隐藏属性 */
         #pwd-error {
-            color: #ff4757;
-            font-size: 14px;
-            margin-top: 15px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            height: 20px;
+            color: #ff4757; font-size: 14px; margin-top: 15px; 
+            opacity: 0; transition: opacity 0.3s; height: 20px;
         }
 
-        /* ---------------- SVG 画心动画 ---------------- */
+        /* ---------------- SVG 画心 ---------------- */
         #start-screen {
-            text-align: center;
-            cursor: pointer;
-            transition: opacity 1s ease;
-            position: absolute;
-            z-index: 20;
-            opacity: 0; /* 初始透明，等待解锁后显示 */
-            display: none; /* 初始隐藏 */
+            text-align: center; cursor: pointer; transition: opacity 1s ease;
+            position: absolute; z-index: 20; opacity: 0; display: none;
         }
-        .svg-heart-container {
-            width: 150px;
-            height: 150px;
-            margin: 0 auto;
-        }
-
+        .svg-heart-container { width: 150px; height: 150px; margin: 0 auto; transition: transform 0.1s linear; }
         .heart-path {
-            fill: transparent;
-            stroke: #ff4757;
-            stroke-width: 4;
-            stroke-dasharray: 300;
-            stroke-dashoffset: 300;
-            filter: drop-shadow(0 0 15px rgba(255, 71, 87, 0.6));
+            fill: transparent; stroke: #ff4757; stroke-width: 4; stroke-dasharray: 300; stroke-dashoffset: 300;
+        }
+        .heart-path.drawing { animation: drawPath 2.5s ease-in-out forwards; }
+        .heart-path.filled { stroke: transparent; fill: #ff4757; filter: drop-shadow(0 0 20px #ff4757); transition: all 0.5s ease-in; }
+        @keyframes drawPath { to { stroke-dashoffset: 0; } }
+        .click-hint { margin-top: 10px; font-size: 18px; color: #d1d1d1; letter-spacing: 4px; opacity: 0; }
+        .click-hint.show { animation: fadeInBlink 2.5s infinite; }
+        @keyframes fadeInBlink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+        /* ---------------- 打字机 ---------------- */
+        #text-screen {
+            display: none; width: 85%; max-width: 700px; font-size: 24px; line-height: 2.2; 
+            text-align: center; z-index: 10; opacity: 1;
+        }
+        .cinematic-char {
+            opacity: 0; filter: blur(10px); display: inline-block;
+            transition: opacity 0.8s ease, filter 0.8s ease;
+        }
+        .cinematic-char.show { opacity: 1; filter: blur(0); }
+        .typing-cursor {
+            display: inline-block; width: 2px; height: 1.2em; background-color: #ff4757;
+            vertical-align: middle; margin-left: 4px; animation: blink 1s step-end infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* ---------------- 告白与记忆墙 ---------------- */
+        #memory-wall {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2;
+            opacity: 0; transition: opacity 3s ease; pointer-events: none;
+            background: rgba(0, 0, 0, 0.4); 
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
         }
         
-        /* 增加一个类来触发画边动画，方便控制时机 */
-        .heart-path.drawing {
-            animation: drawPath 2.5s ease-in-out forwards;
-        }
-
-        .heart-path.filled {
-            stroke: transparent;
-            fill: #ff4757;
-            filter: drop-shadow(0 0 25px rgba(255, 71, 87, 1));
-            transition: all 0.5s ease-in; 
-        }
-
-        .svg-heart-container.beating {
-            animation: heartbeat 1.4s infinite;
-        }
-
-        @keyframes drawPath {
-            to { stroke-dashoffset: 0; }
-        }
-
-        @keyframes heartbeat {
-            0%, 28%, 70% { transform: scale(1); }
-            14%, 42% { transform: scale(1.15); }
-        }
-
-        .click-hint {
-            margin-top: 10px;
-            font-size: 18px;
-            color: #d1d1d1;
-            letter-spacing: 4px;
-            opacity: 0;
-            /* 移除固定延迟，改为靠类触发 */
-        }
-        .click-hint.show {
-            animation: fadeInBlink 2.5s infinite;
-        }
-        @keyframes fadeInBlink {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
-        }
-
-        /* ---------------- 交互特效 ---------------- */
-        .click-ripple {
-            position: absolute;
-            border: 2px solid rgba(255, 105, 180, 0.8);
-            border-radius: 50%;
-            transform: translate(-50%, -50%) scale(0.2);
-            pointer-events: none;
-            animation: rippleEffect 0.6s ease-out forwards;
-            z-index: 5;
-        }
-        @keyframes rippleEffect {
-            to { transform: translate(-50%, -50%) scale(3); opacity: 0; border-width: 0px; }
-        }
-
-        .mouse-trail {
-            position: absolute;
-            width: 5px;
-            height: 5px;
-            background: #fff;
-            border-radius: 50%;
-            pointer-events: none;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 10px #fff, 0 0 20px #ffcccc;
-            animation: trailFade 0.8s linear forwards;
-            z-index: 4;
-        }
-        @keyframes trailFade {
-            0% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.1); }
-        }
-
-        /* ---------------- 打字机与最终告白界面 ---------------- */
-        #text-screen {
-            display: none; width: 85%; max-width: 700px; font-size: 28px;
-            line-height: 2.4; text-align: center; min-height: 200px;
-            z-index: 10; opacity: 0; transition: opacity 1s ease;
-            text-shadow: 0 2px 15px rgba(255, 255, 255, 0.4);
-        }
-
         #final-screen {
-            display: none; width: 90%; text-align: center; z-index: 10;
-            position: absolute; flex-direction: column; justify-content: center; align-items: center;
-            opacity: 0; transition: opacity 2s ease;
+            display: none; width: 90%; text-align: center; z-index: 10; position: absolute;
+            flex-direction: column; justify-content: center; align-items: center; opacity: 0;
         }
-        .final-pre {
-            font-size: 24px; color: #ffe6e6; opacity: 0; margin-bottom: 25px;
-            transition: opacity 1.5s ease-in 1s; text-shadow: 0 0 15px rgba(255, 204, 204, 0.5);
-        }
-
+        .final-pre { font-size: 20px; color: #ffe6e6; opacity: 0; margin-bottom: 20px; }
         .final-core {
-            font-size: 80px; font-weight: bold; color: #ff334b;
-            font-family: 'Dancing Script', cursive; 
-            text-shadow: 0 0 20px rgba(255, 51, 75, 0.8), 0 0 50px rgba(255, 51, 75, 0.5);
-            opacity: 0; transform: translateY(30px) scale(0.8);
-            transition: all 2.5s cubic-bezier(0.25, 1, 0.5, 1) 2.5s; 
-            margin: 20px 0;
-            animation: final-shimmer 4s infinite 5s; 
+            font-size: clamp(40px, 12vw, 80px); font-weight: bold; color: #ff334b; font-family: 'Dancing Script', cursive; 
+            text-shadow: 0 0 20px rgba(255, 51, 75, 0.6);
+            opacity: 0; transform: scale(0.8); transition: all 2.5s cubic-bezier(0.2, 1, 0.2, 1);
         }
-
-        @keyframes final-shimmer {
-            0%, 100% { transform: translateY(0px) scale(1); text-shadow: 0 0 30px rgba(255, 51, 75, 1); }
-            50% { transform: translateY(-10px) scale(1.03); text-shadow: 0 0 60px rgba(255, 51, 75, 1), 0 0 20px #fff; }
-        }
-
-        .final-promise {
-            font-size: 20px; color: #cccccc; margin-top: 30px; letter-spacing: 3px;
-            opacity: 0; transition: opacity 1.5s ease 5.5s; 
-        }
-
+        #timer-box { margin-top: 30px; font-size: 16px; color: #ffcccc; opacity: 0; transition: opacity 1.5s ease 4s; }
+        #timer-box span { font-weight: bold; color: #fff; font-size: 20px; }
+        
         #replay-prompt {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            font-size: 16px; color: rgba(200, 200, 200, 0.6); 
-            letter-spacing: 2px;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 1.5s ease 8s, color 0.3s ease;
-            z-index: 50;
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+            font-size: 14px; color: rgba(255,255,255,0.4); letter-spacing: 2px; cursor: pointer;
+            opacity: 0; transition: opacity 1s, color 0.3s; z-index: 50; display: none;
         }
-        #replay-prompt:hover {
-            color: rgba(255, 255, 255, 0.9);
-            text-shadow: 0 0 10px #fff;
-        }
+        #replay-prompt:hover { color: #fff; }
 
-        /* ---------------- 隐藏彩蛋界面 ---------------- */
-        #easter-egg {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(10, 0, 5, 0.95); z-index: 999; display: none;
-            flex-direction: column; justify-content: center; align-items: center;
-            opacity: 0; transition: opacity 1s ease;
-        }
-        .egg-content {
-            border: 1px solid rgba(255, 71, 87, 0.5);
-            padding: 40px 50px; border-radius: 15px;
-            background: linear-gradient(135deg, rgba(255,71,87,0.1) 0%, rgba(0,0,0,0) 100%);
-            box-shadow: 0 0 30px rgba(255, 71, 87, 0.3);
-            text-align: center;
-        }
-        .egg-title { font-size: 20px; color: #ff4757; letter-spacing: 5px; margin-bottom: 20px; }
-        .egg-text { font-size: 26px; color: #fff; line-height: 1.8; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
-
-        .particle { position: absolute; pointer-events: none; animation: fall linear forwards; border-radius: 50%; }
-        @keyframes fall {
-            0% { transform: translateY(-5vh) rotate(0deg) scale(1); opacity: 0; }
-            10% { opacity: 1; }
-            80% { opacity: 0.8; }
-            100% { transform: translateY(105vh) rotate(360deg) scale(0.5); opacity: 0; }
-        }
     </style>
 </head>
 <body>
@@ -270,326 +114,256 @@
         <source src="your-romantic-music.mp3" type="audio/mpeg">
     </audio>
 
+    <canvas id="bg-canvas"></canvas>
+    <div id="memory-wall"></div>
+
     <div id="login-screen">
         <div class="login-box">
             <h2 class="login-title">身份验证</h2>
-            <input type="password" id="pwd-input" placeholder="请输入专属密码" autocomplete="off" />
+            <input type="password" id="pwd-input" placeholder="请输入专属密码" />
             <button id="pwd-btn">确 认</button>
-            <div id="pwd-error">密码不正确哦，再想想~</div>
+            <div id="pwd-error">密码不对哦~</div>
         </div>
     </div>
 
     <div id="start-screen">
-        <div class="svg-heart-container" id="svg-heart-container">
+        <div class="svg-heart-container">
             <svg viewBox="0 0 100 100">
                 <path id="heart-path" class="heart-path" d="M50 85 C20 55 10 35 10 20 C10 8 22 2 33 5 C42 8 47 15 50 20 C53 15 58 8 67 5 C78 2 90 8 90 20 C90 35 80 55 50 85 Z" />
             </svg>
         </div>
-        <div class="click-hint" id="click-hint">宝宝，点击这颗心</div>
+        <div class="click-hint" id="click-hint">点击这颗心</div>
     </div>
 
     <div id="text-screen"></div>
 
     <div id="final-screen">
-        <div class="final-pre" id="final-p1">我以前不相信永远，直到我遇见了你。</div>
-        <div class="final-pre" id="final-p2">你不仅是我的宝宝、我的老婆，也是我灵魂的共鸣。</div>
+        <div class="final-pre" id="final-p1">以前不信永远，直到遇见你。</div>
+        <div class="final-pre" id="final-p2">我的宝宝，我的老婆。</div>
         <div class="final-core" id="final-core">小博，我爱你！</div>
-        <div class="final-promise" id="final-p3">不只是这一刻，而是我的余生。</div>
+        <div id="timer-box">相伴已走过 <span id="time-d">0</span>天 <span id="time-h">0</span>时 <span id="time-m">0</span>分 <span id="time-s">0</span>秒</div>
     </div>
 
     <div id="replay-prompt">点这里，再看一遍</div>
 
-    <div id="easter-egg">
-        <div class="egg-content">
-            <div class="egg-title">—— 专属隐藏彩蛋 ——</div>
-            <div class="egg-text">其实从见你第一面起，<br>我就在悄悄规划有你的未来了。<br>能牵着你的手，是我最骄傲的事。</div>
-        </div>
-    </div>
-
     <script>
-        // ================= 这里设置你的专属密码 =================
         const CORRECT_PASSWORD = "0210"; 
-        // ========================================================
-
+        const START_DATE = new Date("2026-02-10T00:00:00"); 
         const storyLines = [
             "宝宝，展信佳。",
-            "我总是在想，在这个平凡的世界里，我是多大的幸运，才能在茫茫人海中找到你。",
-            "谢谢你的温柔，像光一样照进我的生活，驱散了所有的阴霾。",
-            "谢谢你的陪伴，包容我的不完美，让我知道被坚定选择的感觉。",
-            "小博，和你在一起的每一个瞬间，我都想把它们温柔地装进时间的盒子里。",
-            "我想把全世界的浪漫都收集起来，毫无保留地打包送给你。",
-            "虽然未来还有很长的路要走，但我早就做好了和你并肩前行的准备。"
+            "茫茫人海中找到你，是我最大的幸运。",
+            "谢谢你的温柔，像光一样照进我的生活。",
+            "包容我的不完美，让我感受到被坚定的选择。",
+            "想把全世界的浪漫，都打包送给你。",
+            "余生漫漫，我想和你并肩走下去。"
         ];
 
+        let viewCount = 0; 
+        let hasStarted = false;
+        let audioCtx, analyser, dataArray, currentBass = 0;
+
         const loginScreen = document.getElementById('login-screen');
-        const pwdInput = document.getElementById('pwd-input');
-        const pwdBtn = document.getElementById('pwd-btn');
-        const pwdError = document.getElementById('pwd-error');
-        
         const startScreen = document.getElementById('start-screen');
         const textScreen = document.getElementById('text-screen');
         const finalScreen = document.getElementById('final-screen');
-        const bgm = document.getElementById('bgm');
         const replayPrompt = document.getElementById('replay-prompt');
-        const heartPath = document.getElementById('heart-path');
-        const svgContainer = document.getElementById('svg-heart-container');
-        const clickHint = document.getElementById('click-hint');
+        const bgm = document.getElementById('bgm');
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        const pwdError = document.getElementById('pwd-error');
 
-        let currentLine = 0;
-        let currentChar = 0;
-        let particleInterval;
-        let hasStarted = false; 
-
-        // 0. 密码验证逻辑
-        function verifyPassword() {
-            if (pwdInput.value === CORRECT_PASSWORD) {
+        // 密码逻辑修复：增加错误提示定时消失
+        document.getElementById('pwd-btn').onclick = () => {
+            if (document.getElementById('pwd-input').value === CORRECT_PASSWORD) {
                 loginScreen.style.opacity = '0';
                 setTimeout(() => {
                     loginScreen.style.display = 'none';
                     startScreen.style.display = 'block';
-                    // 给浏览器一点渲染时间后渐显开场页
-                    requestAnimationFrame(() => {
+                    setTimeout(() => {
                         startScreen.style.opacity = '1';
-                        triggerHeartAnimation(); // 解锁后才开始画心
-                    });
-                }, 800);
+                        document.getElementById('heart-path').classList.add('drawing');
+                        setTimeout(() => document.getElementById('heart-path').classList.add('filled'), 2500);
+                        setTimeout(() => document.getElementById('click-hint').classList.add('show'), 3000);
+                    }, 100);
+                }, 1000);
             } else {
                 pwdError.style.opacity = '1';
-                pwdInput.value = '';
                 setTimeout(() => pwdError.style.opacity = '0', 2000);
             }
-        }
+        };
 
-        pwdBtn.addEventListener('click', verifyPassword);
-        pwdInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') verifyPassword();
+        // 回车键支持
+        document.getElementById('pwd-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('pwd-btn').click();
         });
 
-        // 提取画心动画函数，方便复用
-        function triggerHeartAnimation() {
-            heartPath.classList.remove('drawing', 'filled');
-            svgContainer.classList.remove('beating');
-            clickHint.classList.remove('show');
-
-            // 强制重绘，重置动画
-            void heartPath.offsetWidth; 
-
-            heartPath.classList.add('drawing');
-
-            setTimeout(() => {
-                if (!hasStarted) heartPath.classList.add('filled');
-            }, 2500);
-
-            setTimeout(() => {
-                if (!hasStarted) {
-                    svgContainer.classList.add('beating');
-                    clickHint.classList.add('show');
-                }
-            }, 3000);
-        }
-
-        // 1. 开场点击逻辑
-        startScreen.addEventListener('click', startAnimation);
-
-        function startAnimation() {
+        // 开始动画
+        startScreen.onclick = () => {
             if(hasStarted) return;
             hasStarted = true;
-            bgm.play().catch(e => console.log("音乐需用户交互或文件缺失"));
-
+            if(!audioCtx) initAudio();
+            bgm.play();
             startScreen.style.opacity = '0';
             setTimeout(() => {
                 startScreen.style.display = 'none';
                 textScreen.style.display = 'block';
-                heartPath.classList.remove('drawing', 'filled');
-                svgContainer.classList.remove('beating');
-                clickHint.classList.remove('show');
-                
-                requestAnimationFrame(() => textScreen.style.opacity = '1');
-                
-                startParticles(['#ffffff', '#ffcccc'], 400, 'star'); 
-                typeWriter();
+                initParticles();
+                runTypewriter();
             }, 1000);
+        };
+
+        function initAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            const source = audioCtx.createMediaElementSource(bgm);
+            source.connect(analyser);
+            analyser.connect(audioCtx.destination);
+            dataArray = new Uint8Array(analyser.frequencyBinCount);
         }
 
-        // 打字机逻辑
-        function typeWriter() {
-            if (currentLine < storyLines.length) {
-                if (currentChar < storyLines[currentLine].length) {
-                    textScreen.innerHTML = storyLines[currentLine].substring(0, currentChar + 1) + "<span style='opacity:0.6'>|</span>";
-                    currentChar++;
-                    setTimeout(typeWriter, Math.random() * 50 + 100); 
-                } else {
-                    setTimeout(() => {
-                        currentChar = 0;
-                        currentLine++;
-                        textScreen.innerHTML = "";
-                        typeWriter();
-                    }, 2500); 
-                }
-            } else {
+        // 打字机逻辑重构：字符逐个插入 DOM，光标自然跟随
+        function runTypewriter() {
+            if (currentLine >= storyLines.length) {
                 textScreen.style.opacity = '0';
-                setTimeout(() => {
-                    textScreen.style.display = 'none';
-                    showFinalScreen(); 
-                }, 1000);
+                setTimeout(showFinal, 1500);
+                return;
             }
+            
+            textScreen.innerHTML = "";
+            let chars = storyLines[currentLine].split('');
+            let charIndex = 0;
+
+            // 初始化光标节点
+            let cur = document.createElement('span');
+            cur.className = 'typing-cursor';
+            textScreen.appendChild(cur);
+
+            function typeNextChar() {
+                if (charIndex < chars.length) {
+                    let s = document.createElement('span');
+                    s.className = 'cinematic-char';
+                    s.innerText = chars[charIndex];
+                    
+                    // 将字符插入到光标的前面
+                    textScreen.insertBefore(s, cur);
+                    
+                    // 给浏览器留出一帧的时间渲染节点，然后再加渐现动画
+                    setTimeout(() => s.classList.add('show'), 20);
+                    
+                    charIndex++;
+                    setTimeout(typeNextChar, 150);
+                } else {
+                    // 当前行打完，停留后进入下一行
+                    setTimeout(() => {
+                        textScreen.style.opacity = '0';
+                        setTimeout(() => {
+                            currentLine++;
+                            textScreen.style.opacity = '1';
+                            runTypewriter();
+                        }, 1000);
+                    }, 2000);
+                }
+            }
+
+            typeNextChar();
         }
 
-        function showFinalScreen() {
+        let currentLine = 0;
+        function showFinal() {
+            textScreen.style.display = 'none';
             finalScreen.style.display = 'flex';
-            clearInterval(particleInterval);
-            startParticles(['#ff4757', '#ff1493', '#ffd700', '#ffffff'], 80, 'mixed');
-
-            requestAnimationFrame(() => finalScreen.style.opacity = '1');
-
-            document.getElementById('final-p1').style.opacity = '1';
-            document.getElementById('final-p2').style.opacity = '1';
+            document.getElementById('memory-wall').style.opacity = '1';
             
             setTimeout(() => {
-                let fc = document.getElementById('final-core');
-                fc.style.opacity = '1';
-                fc.style.transform = 'translateY(0px) scale(1)';
-            }, 50); 
+                finalScreen.style.opacity = '1';
+                document.getElementById('final-p1').style.opacity = '1';
+                document.getElementById('final-p2').style.opacity = '1';
+                document.getElementById('final-core').style.opacity = '1';
+                document.getElementById('final-core').style.transform = 'scale(1)';
+            }, 100);
 
-            document.getElementById('final-p3').style.opacity = '1';
+            // 只有第一次看的时候显示重播按钮
+            if (viewCount === 0) {
+                replayPrompt.style.display = 'block';
+                setTimeout(() => replayPrompt.style.opacity = '1', 5000);
+            } else {
+                replayPrompt.style.display = 'none';
+            }
             
-            replayPrompt.style.opacity = '1';
+            setInterval(updateTimer, 1000);
         }
 
-        // 重头再看逻辑
-        replayPrompt.addEventListener('click', resetAll);
+        function updateTimer() {
+            const diff = new Date() - START_DATE;
+            document.getElementById('time-d').innerText = Math.floor(diff / 86400000);
+            document.getElementById('time-h').innerText = Math.floor((diff / 3600000) % 24);
+            document.getElementById('time-m').innerText = Math.floor((diff / 60000) % 60);
+            document.getElementById('time-s').innerText = Math.floor((diff / 1000) % 60);
+        }
 
-        function resetAll() {
-            clearInterval(particleInterval);
-            document.querySelectorAll('.particle').forEach(p => p.remove());
-            document.querySelectorAll('style.easter-egg-style').forEach(s => s.remove());
-
+        // 重播
+        replayPrompt.onclick = () => {
+            viewCount++; // 增加观看次数
             finalScreen.style.opacity = '0';
+            document.getElementById('memory-wall').style.opacity = '0';
             replayPrompt.style.opacity = '0';
             setTimeout(() => {
                 finalScreen.style.display = 'none';
-            }, 1000);
-
-            currentLine = 0;
-            currentChar = 0;
-            hasStarted = false;
-            eggTriggered = false;
-            keyIndex = 0;
-            clickCount = 0;
-
-            startScreen.style.display = 'block';
-            requestAnimationFrame(() => {
+                replayPrompt.style.display = 'none';
+                currentLine = 0;
+                hasStarted = false;
+                startScreen.style.display = 'block';
                 startScreen.style.opacity = '1';
-                triggerHeartAnimation(); // 重新触发动画
+            }, 1000);
+        };
+
+        // Canvas 系统
+        let particles = [];
+        function initParticles() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            for(let i=0; i<80; i++) particles.push({
+                x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+                vx: Math.random()-0.5, vy: Math.random()-0.5, size: Math.random()*2+1
             });
+            draw();
         }
 
-        // 2. 全局交互：点击波纹与鼠标星光拖尾
-        let lastMoveTime = 0;
-        window.addEventListener('mousemove', (e) => {
-            if(Date.now() - lastMoveTime > 40) { 
-                const trail = document.createElement('div');
-                trail.className = 'mouse-trail';
-                trail.style.left = e.clientX + 'px';
-                trail.style.top = e.clientY + 'px';
-                document.body.appendChild(trail);
-                setTimeout(() => trail.remove(), 800);
-                lastMoveTime = Date.now();
-            }
-        });
-
-        window.addEventListener('click', (e) => {
-            if(e.target.closest('#start-screen') || e.target.closest('#login-screen')) return;
-            if(e.target === replayPrompt) return;
-
-            const ripple = document.createElement('div');
-            ripple.className = 'click-ripple';
-            ripple.style.left = e.clientX + 'px';
-            ripple.style.top = e.clientY + 'px';
-            document.body.appendChild(ripple);
-            setTimeout(() => ripple.remove(), 600);
-        });
-
-        // 3. 专属彩蛋逻辑 
-        let secretWord = ['l', 'o', 'v', 'e']; 
-        let keyIndex = 0;
-        let eggTriggered = false;
-
-        window.addEventListener('keydown', (e) => {
-            if(eggTriggered || !hasStarted) return; // 没开始不触发
-            if(e.key.toLowerCase() === secretWord[keyIndex]) {
-                keyIndex++;
-                if(keyIndex === secretWord.length) {
-                    showEasterEgg();
-                }
-            } else {
-                keyIndex = 0; 
-            }
-        });
-
-        let clickCount = 0;
-        let clickTimer;
-        window.addEventListener('click', (e) => {
-            if(eggTriggered || !hasStarted) return;
-            if(window.innerWidth - e.clientX < 100 && window.innerHeight - e.clientY < 100) {
-                clickCount++;
-                clearTimeout(clickTimer);
-                clickTimer = setTimeout(() => clickCount = 0, 1000); 
-                if(clickCount >= 3) {
-                    showEasterEgg();
-                }
-            }
-        });
-
-        function showEasterEgg() {
-            eggTriggered = true;
-            const eggScreen = document.getElementById('easter-egg');
-            eggScreen.style.display = 'flex';
+        function draw() {
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.fillRect(0,0,canvas.width, canvas.height);
             
-            clearInterval(particleInterval);
-            startParticles(['#ff4757', '#ff69b4'], 30, 'star');
-            
-            let style = document.createElement('style');
-            style.className = 'easter-egg-style';
-            style.innerHTML = `.particle { animation-duration: 2s !important; }`;
-            document.head.appendChild(style);
+            if(analyser) {
+                analyser.getByteFrequencyData(dataArray);
+                currentBass = dataArray[0] / 255;
+            }
 
-            setTimeout(() => {
-                eggScreen.style.opacity = '1';
-            }, 100);
-        }
-
-        // 粒子系统基础函数
-        function startParticles(colors, frequency, type) {
-            particleInterval = setInterval(() => {
-                const particle = document.createElement('div');
-                particle.classList.add('particle');
-                const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                particle.style.color = randomColor;
+            particles.forEach(p => {
+                p.x += p.vx * (1 + currentBass);
+                p.y += p.vy * (1 + currentBass);
+                if(p.x<0 || p.x>canvas.width) p.vx*=-1;
+                if(p.y<0 || p.y>canvas.height) p.vy*=-1;
                 
-                const isHeart = type === 'mixed' ? Math.random() > 0.4 : false;
-                if (isHeart) {
-                    particle.innerHTML = '❤';
-                    particle.style.fontSize = (Math.random() * 20 + 10) + 'px';
-                    particle.style.textShadow = `0 0 10px ${randomColor}`;
-                } else {
-                    const size = Math.random() * 6 + 2;
-                    particle.style.width = size + 'px'; particle.style.height = size + 'px';
-                    particle.style.backgroundColor = randomColor;
-                    particle.style.boxShadow = `0 0 ${Math.random() * 15 + 5}px ${randomColor}`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size + currentBass*3, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(255, ${200 - currentBass*100}, ${200 - currentBass*100}, 0.8)`;
+                ctx.fill();
+            });
+
+            // 连线
+            ctx.strokeStyle = 'rgba(255,71,87,0.05)';
+            for(let i=0; i<particles.length; i++) {
+                for(let j=i+1; j<particles.length; j++) {
+                    let d = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
+                    if(d < 100) {
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
                 }
-
-                particle.style.left = Math.random() * 100 + 'vw';
-                particle.style.top = '-5vh';
-                particle.style.animationDuration = (Math.random() * 4 + 4) + 's'; 
-                
-                const blurAmount = Math.random() > 0.6 ? Math.random() * 4 : 0;
-                particle.style.filter = `blur(${blurAmount}px)`;
-                particle.style.zIndex = blurAmount > 2 ? 1 : 15;
-
-                document.body.appendChild(particle);
-                setTimeout(() => particle.remove(), 8000);
-            }, frequency);
+            }
+            requestAnimationFrame(draw);
         }
     </script>
 </body>
