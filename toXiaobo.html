@@ -46,12 +46,96 @@
             opacity: 0; transition: opacity 0.3s; height: 20px;
         }
 
-        /* ---------------- SVG 画心 ---------------- */
-        #start-screen {
-            text-align: center; cursor: pointer; transition: opacity 1s ease;
-            position: absolute; z-index: 20; opacity: 0; display: none;
-        }
-        .svg-heart-container { width: 150px; height: 150px; margin: 0 auto; transition: transform 0.1s linear; }
+        /* ---------------- 3D 信封样式 ---------------- */
+#start-screen {
+    perspective: 1000px;
+    text-align: center;
+    cursor: pointer;
+    transition: opacity 1s ease;
+    position: absolute;
+    z-index: 20;
+    opacity: 0;
+    display: none;
+}
+
+.envelope-wrapper {
+    position: relative;
+    width: 280px;
+    height: 180px;
+    margin: 0 auto;
+    background: #ff4757; /* 信封主体颜色 */
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+}
+
+#envelope {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* 信封顶部的三角形翻盖 */
+.flap {
+    position: absolute;
+    top: 0;
+    width: 0;
+    height: 0;
+    border-left: 140px solid transparent;
+    border-right: 140px solid transparent;
+    border-top: 100px solid #ff4757;
+    transform-origin: top;
+    transition: transform 0.6s ease-in-out;
+    z-index: 3;
+}
+
+/* 信封底部的袋子 */
+.pocket {
+    position: absolute;
+    bottom: 0;
+    width: 0;
+    height: 0;
+    border-left: 140px solid #ff6b81;
+    border-right: 140px solid #ff6b81;
+    border-bottom: 90px solid #ff6b81;
+    border-top: 90px solid transparent;
+    z-index: 4;
+}
+
+/* 信中的纸条 */
+.letter {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    height: 80%;
+    background: #fff;
+    transition: transform 0.6s ease-in-out;
+    z-index: 2;
+    padding: 15px;
+    box-sizing: border-box;
+    border-radius: 5px;
+}
+
+.letter-text {
+    font-family: 'Noto Sans SC', sans-serif;
+    color: #ff4757;
+    font-size: 18px;
+    font-weight: bold;
+    line-height: 1.5;
+}
+
+/* 开启状态的动画控制 */
+.envelope-wrapper.open .flap {
+    transform: rotateX(180deg);
+    z-index: 1; /* 翻开后层级降低 */
+}
+
+.envelope-wrapper.open .letter {
+    transform: translate(-50%, -80px); /* 信纸抽出的高度 */
+}
+
+.click-hint { margin-top: 40px; font-size: 18px; color: #d1d1d1; letter-spacing: 4px; }
         .heart-path {
             fill: transparent; stroke: #ff4757; stroke-width: 4; stroke-dasharray: 300; stroke-dashoffset: 300;
         }
@@ -127,13 +211,19 @@
     </div>
 
     <div id="start-screen">
-        <div class="svg-heart-container">
-            <svg viewBox="0 0 100 100">
-                <path id="heart-path" class="heart-path" d="M50 85 C20 55 10 35 10 20 C10 8 22 2 33 5 C42 8 47 15 50 20 C53 15 58 8 67 5 C78 2 90 8 90 20 C90 35 80 55 50 85 Z" />
-            </svg>
+    <div class="envelope-wrapper">
+        <div id="envelope">
+            <div class="flap"></div>
+            <div class="pocket"></div>
+            <div class="letter">
+                <div class="letter-text">
+                    宝宝，<br>展信佳。
+                </div>
+            </div>
         </div>
-        <div class="click-hint" id="click-hint">点击这颗心</div>
     </div>
+    <div class="click-hint show" id="click-hint">点击开启信封</div>
+</div>
 
     <div id="text-screen"></div>
 
@@ -172,45 +262,50 @@
         const ctx = canvas.getContext('2d');
         const pwdError = document.getElementById('pwd-error');
 
-        // 密码逻辑修复：增加错误提示定时消失
         document.getElementById('pwd-btn').onclick = () => {
-            if (document.getElementById('pwd-input').value === CORRECT_PASSWORD) {
-                loginScreen.style.opacity = '0';
-                setTimeout(() => {
-                    loginScreen.style.display = 'none';
-                    startScreen.style.display = 'block';
-                    setTimeout(() => {
-                        startScreen.style.opacity = '1';
-                        document.getElementById('heart-path').classList.add('drawing');
-                        setTimeout(() => document.getElementById('heart-path').classList.add('filled'), 2500);
-                        setTimeout(() => document.getElementById('click-hint').classList.add('show'), 3000);
-                    }, 100);
-                }, 1000);
-            } else {
-                pwdError.style.opacity = '1';
-                setTimeout(() => pwdError.style.opacity = '0', 2000);
-            }
-        };
+    if (document.getElementById('pwd-input').value === CORRECT_PASSWORD) {
+        loginScreen.style.opacity = '0';
+        setTimeout(() => {
+            loginScreen.style.display = 'none';
+            startScreen.style.display = 'block';
+            setTimeout(() => {
+                startScreen.style.opacity = '1';
+                // 这里不再有 drawing 动画，直接展示静止的信封
+            }, 100);
+        }, 1000);
+    } else {
+        pwdError.style.opacity = '1';
+        setTimeout(() => pwdError.style.opacity = '0', 2000);
+    }
+};
 
         // 回车键支持
         document.getElementById('pwd-input').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') document.getElementById('pwd-btn').click();
         });
 
-        // 开始动画
         startScreen.onclick = () => {
-            if(hasStarted) return;
-            hasStarted = true;
-            if(!audioCtx) initAudio();
-            bgm.play();
-            startScreen.style.opacity = '0';
-            setTimeout(() => {
-                startScreen.style.display = 'none';
-                textScreen.style.display = 'block';
-                initParticles();
-                runTypewriter();
-            }, 1000);
-        };
+    if(hasStarted) return;
+    hasStarted = true;
+
+    // 触发信封开启动画
+    document.querySelector('.envelope-wrapper').classList.add('open');
+    document.getElementById('click-hint').classList.remove('show');
+    document.getElementById('click-hint').style.opacity = '0';
+
+    // 等信封开启动画播完再进入打字机
+    setTimeout(() => {
+        if(!audioCtx) initAudio();
+        bgm.play();
+        startScreen.style.opacity = '0';
+        setTimeout(() => {
+            startScreen.style.display = 'none';
+            textScreen.style.display = 'block';
+            initParticles();
+            runTypewriter();
+        }, 1000);
+    }, 1500); // 1.5秒是给翻开和抽出信纸留的时间
+};
 
         function initAudio() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
