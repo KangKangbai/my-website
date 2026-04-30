@@ -111,10 +111,10 @@
             background: #fff; box-shadow: 0 0 20px 8px #fff, 0 0 40px 15px #ff0844;
         }
         @keyframes meteorStrike {
-            /* 起点在右上角，终点在 0,0（屏幕正中心） */
-            0% { transform: translate(50vw, -50vh) rotate(135deg); opacity: 0; }
+            /* 先旋转135度指向左下，然后向"后"（右上）平移 150vmax 确保在屏幕外 */
+            0% { transform: rotate(135deg) translateX(150vmax); opacity: 0; }
             15% { opacity: 1; }
-            100% { transform: translate(0, 0) rotate(135deg); opacity: 1; }
+            100% { transform: rotate(135deg) translateX(0); opacity: 1; }
         }
         
         /* 流星砸到中间时的光波爆炸 */
@@ -143,10 +143,12 @@
             background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
         }
         
-        #final-screen {
+       #final-screen {
             display: none; width: 90%; text-align: center; z-index: 10; position: absolute;
             flex-direction: column; justify-content: center; align-items: center; opacity: 0;
             transition: opacity 1s ease;
+            /* 新增下面这行，确保在手机端完美居中 */
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
         }
         .final-pre { font-size: 20px; color: #ffe6e6; opacity: 0; margin-bottom: 20px; transition: opacity 2s ease 0.5s;}
         .final-core {
@@ -216,7 +218,8 @@
         const CORRECT_PASSWORD = "loveXiaobo"; 
         const START_DATE = new Date("2026-02-10T00:00:00"); 
         const storyLines = [
-            "宝宝，回想起来，我们的相遇真的很猝不及防。",
+            "宝宝，展信佳。",
+            <!--"宝宝，回想起来，我们的相遇真的很猝不及防。",
             "寒假快要结束的那段日子，偶然相识，第一次见面牵手，第二天相拥亲吻，一切都快得猝不及防，却又无比顺理成章。",
             "原本只是无聊消遣的一次碰面，却让我遇见了这辈子最想好好留住的人。",
             "我们隔着江苏与河南的距离，是异地，相差五岁，都是不善表达却心思细腻的人，一个ESTJ，一个ISTJ，慢慢磨合，慢慢依赖。",
@@ -226,7 +229,7 @@
             "在遇见你之前，我好像一直平平淡淡的生活，敷衍度日，可你的出现，悄悄改变了我。",
             "我开始期待每一天，开始有了牵挂，有了软肋，也有了坚定的偏爱。",
             "会下意识想着给你买零食，挑好看的小物件，惦记你有没有好好吃饭。",
-            "而你也在用你的方式好好爱我，给我寄满满一箱的零食和温柔，花心思定制专属我们的戒指，一生只能登记一次的限定浪漫，是你明目张胆的诚意。",
+            "而你也在用你的方式好好爱我，给我寄满满一包的零食和温柔，花心思定制专属我们的戒指，一生只能登记一次的限定浪漫，是你明目张胆的诚意。",
             "我知道你干净又纯粹，带着满心的真诚奔向我，把最珍贵的温柔和初心都留给了我。",
             "这份偏爱，我从来都不敢辜负。",
             "异地很难，不能随时见面，不能并肩散步，偶尔也会有小矛盾、小别扭，但每次磨合过后，我们都更确定，彼此就是想要的那个人。",
@@ -235,7 +238,7 @@
             "我不想只陪你走一程，我想和你慢慢来，岁岁年年，长久相伴。",
             "往后的日子，我会一直好好喜欢你，好好偏爱你，包容你的小脾气，接住你的所有情绪。",
             "不管距离多远，不管未来有多少未知，我都会坚定选择你，一次，次次，永远。",
-            "始于初见，忠于心动，终于余生。",
+            "始于初见，忠于心动，终于余生。",-->
         ];
 
         let viewCount = 0; 
@@ -389,9 +392,10 @@
 
             setTimeout(() => {
                 finalScreen.style.opacity = '1';
-                document.getElementById('final-p1').style.opacity = '1';
-                document.getElementById('final-p2').style.opacity = '1';
-                document.getElementById('final-core').style.opacity = '1';
+                if(document.getElementById('final-p1')) document.getElementById('final-p1').style.opacity = '1';
+                // 增加判断：如果HTML里注释掉了p2，这里就不会执行，防止报错崩溃
+                if(document.getElementById('final-p2')) document.getElementById('final-p2').style.opacity = '1';
+                if(document.getElementById('final-core')) document.getElementById('final-core').style.opacity = '1';
             }, 100);
 
             if (viewCount === 0) {
