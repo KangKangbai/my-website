@@ -40,108 +40,39 @@
             padding: 10px 35px; font-size: 16px; border: none; border-radius: 8px;
             background: #ff4757; color: #fff; cursor: pointer; transition: background 0.3s;
         }
-        /* 修复：补回隐藏属性 */
         #pwd-error {
             color: #ff4757; font-size: 14px; margin-top: 15px; 
             opacity: 0; transition: opacity 0.3s; height: 20px;
         }
 
         /* ---------------- 3D 信封样式 ---------------- */
-#start-screen {
-    perspective: 1000px;
-    text-align: center;
-    cursor: pointer;
-    transition: opacity 1s ease;
-    position: absolute;
-    z-index: 20;
-    opacity: 0;
-    display: none;
-}
-
-.envelope-wrapper {
-    position: relative;
-    width: 280px;
-    height: 180px;
-    margin: 0 auto;
-    background: #ff4757; /* 信封主体颜色 */
-    border-radius: 0 0 10px 10px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-}
-
-#envelope {
-    position: relative;
-    width: 100%;
-    height: 100%;
-}
-
-/* 信封顶部的三角形翻盖 */
-.flap {
-    position: absolute;
-    top: 0;
-    width: 0;
-    height: 0;
-    border-left: 140px solid transparent;
-    border-right: 140px solid transparent;
-    border-top: 100px solid #ff4757;
-    transform-origin: top;
-    transition: transform 0.6s ease-in-out;
-    z-index: 3;
-}
-
-/* 信封底部的袋子 */
-.pocket {
-    position: absolute;
-    bottom: 0;
-    width: 0;
-    height: 0;
-    border-left: 140px solid #ff6b81;
-    border-right: 140px solid #ff6b81;
-    border-bottom: 90px solid #ff6b81;
-    border-top: 90px solid transparent;
-    z-index: 4;
-}
-
-/* 信中的纸条 */
-.letter {
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    height: 80%;
-    background: #fff;
-    transition: transform 0.6s ease-in-out;
-    z-index: 2;
-    padding: 15px;
-    box-sizing: border-box;
-    border-radius: 5px;
-}
-
-.letter-text {
-    font-family: 'Noto Sans SC', sans-serif;
-    color: #ff4757;
-    font-size: 18px;
-    font-weight: bold;
-    line-height: 1.5;
-}
-
-/* 开启状态的动画控制 */
-.envelope-wrapper.open .flap {
-    transform: rotateX(180deg);
-    z-index: 1; /* 翻开后层级降低 */
-}
-
-.envelope-wrapper.open .letter {
-    transform: translate(-50%, -80px); /* 信纸抽出的高度 */
-}
-
-.click-hint { margin-top: 40px; font-size: 18px; color: #d1d1d1; letter-spacing: 4px; }
-        .heart-path {
-            fill: transparent; stroke: #ff4757; stroke-width: 4; stroke-dasharray: 300; stroke-dashoffset: 300;
+        #start-screen {
+            perspective: 1000px; text-align: center; cursor: pointer;
+            transition: opacity 1s ease; position: absolute; z-index: 20; opacity: 0; display: none;
         }
-        .heart-path.drawing { animation: drawPath 2.5s ease-in-out forwards; }
-        .heart-path.filled { stroke: transparent; fill: #ff4757; filter: drop-shadow(0 0 20px #ff4757); transition: all 0.5s ease-in; }
-        @keyframes drawPath { to { stroke-dashoffset: 0; } }
+        .envelope-wrapper {
+            position: relative; width: 280px; height: 180px; margin: 0 auto;
+            background: #ff4757; border-radius: 0 0 10px 10px; box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+        #envelope { position: relative; width: 100%; height: 100%; }
+        .flap {
+            position: absolute; top: 0; width: 0; height: 0;
+            border-left: 140px solid transparent; border-right: 140px solid transparent; border-top: 100px solid #ff4757;
+            transform-origin: top; transition: transform 0.6s ease-in-out; z-index: 3;
+        }
+        .pocket {
+            position: absolute; bottom: 0; width: 0; height: 0;
+            border-left: 140px solid #ff6b81; border-right: 140px solid #ff6b81;
+            border-bottom: 90px solid #ff6b81; border-top: 90px solid transparent; z-index: 4;
+        }
+        .letter {
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 90%; height: 80%; background: #fff; transition: transform 0.6s ease-in-out;
+            z-index: 2; padding: 15px; box-sizing: border-box; border-radius: 5px;
+        }
+        .letter-text { font-family: 'Noto Sans SC', sans-serif; color: #ff4757; font-size: 18px; font-weight: bold; line-height: 1.5; }
+        .envelope-wrapper.open .flap { transform: rotateX(180deg); z-index: 1; }
+        .envelope-wrapper.open .letter { transform: translate(-50%, -80px); }
         .click-hint { margin-top: 10px; font-size: 18px; color: #d1d1d1; letter-spacing: 4px; opacity: 0; }
         .click-hint.show { animation: fadeInBlink 2.5s infinite; }
         @keyframes fadeInBlink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
@@ -149,12 +80,9 @@
         /* ---------------- 打字机 ---------------- */
         #text-screen {
             display: none; width: 85%; max-width: 700px; font-size: 24px; line-height: 2.2; 
-            text-align: center; z-index: 10; opacity: 1;
+            text-align: center; z-index: 10; opacity: 1; transition: opacity 1s;
         }
-        .cinematic-char {
-            opacity: 0; filter: blur(10px); display: inline-block;
-            transition: opacity 0.8s ease, filter 0.8s ease;
-        }
+        .cinematic-char { opacity: 0; filter: blur(10px); display: inline-block; transition: opacity 0.8s ease, filter 0.8s ease; }
         .cinematic-char.show { opacity: 1; filter: blur(0); }
         .typing-cursor {
             display: inline-block; width: 2px; height: 1.2em; background-color: #ff4757;
@@ -162,23 +90,33 @@
         }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
+        /* ---------------- Java 终端 ---------------- */
+        #java-terminal {
+            display: none; position: absolute; width: 90%; max-width: 600px; z-index: 30;
+            background: rgba(43, 43, 43, 0.9); border: 1px solid #555; border-radius: 8px;
+            padding: 20px; font-family: 'Consolas', 'Courier New', monospace; font-size: 16px; line-height: 1.6;
+            color: #a9b7c6; text-align: left; box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            opacity: 0; transition: opacity 0.8s ease; white-space: pre-wrap;
+        }
+        .terminal-cursor { display: inline-block; width: 8px; height: 1em; background-color: #a9b7c6; vertical-align: middle; animation: blink 1s step-end infinite; }
+
         /* ---------------- 告白与记忆墙 ---------------- */
         #memory-wall {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2;
             opacity: 0; transition: opacity 3s ease; pointer-events: none;
-            background: rgba(0, 0, 0, 0.4); 
-            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
         }
         
         #final-screen {
             display: none; width: 90%; text-align: center; z-index: 10; position: absolute;
             flex-direction: column; justify-content: center; align-items: center; opacity: 0;
+            transition: opacity 2s ease;
         }
-        .final-pre { font-size: 20px; color: #ffe6e6; opacity: 0; margin-bottom: 20px; }
+        .final-pre { font-size: 20px; color: #ffe6e6; opacity: 0; margin-bottom: 20px; transition: opacity 2s ease 1s;}
         .final-core {
             font-size: clamp(40px, 12vw, 80px); font-weight: bold; color: #ff334b; font-family: 'Dancing Script', cursive; 
             text-shadow: 0 0 20px rgba(255, 51, 75, 0.6);
-            opacity: 0; transform: scale(0.8); transition: all 2.5s cubic-bezier(0.2, 1, 0.2, 1);
+            opacity: 0; transform: scale(0.8); transition: opacity 2s ease 2s, transform 0.1s ease;
         }
         #timer-box { margin-top: 30px; font-size: 16px; color: #ffcccc; opacity: 0; transition: opacity 1.5s ease 4s; }
         #timer-box span { font-weight: bold; color: #fff; font-size: 20px; }
@@ -211,21 +149,22 @@
     </div>
 
     <div id="start-screen">
-    <div class="envelope-wrapper">
-        <div id="envelope">
-            <div class="flap"></div>
-            <div class="pocket"></div>
-            <div class="letter">
-                <div class="letter-text">
-                    宝宝，<br>展信佳。
+        <div class="envelope-wrapper">
+            <div id="envelope">
+                <div class="flap"></div>
+                <div class="pocket"></div>
+                <div class="letter">
+                    <div class="letter-text">
+                        宝宝，<br>展信佳。
+                    </div>
                 </div>
             </div>
         </div>
+        <div class="click-hint show" id="click-hint">点击开启信封</div>
     </div>
-    <div class="click-hint show" id="click-hint">点击开启信封</div>
-</div>
 
     <div id="text-screen"></div>
+    <div id="java-terminal"></div>
 
     <div id="final-screen">
         <div class="final-pre" id="final-p1">以前不信永远，直到遇见你。</div>
@@ -242,19 +181,31 @@
         const storyLines = [
             "宝宝，展信佳。",
             "茫茫人海中找到你，是我最大的幸运。",
-            "谢谢你的温柔，像光一样照进我的生活。",
-            "包容我的不完美，让我感受到被坚定的选择。",
             "想把全世界的浪漫，都打包送给你。",
-            "余生漫漫，我想和你并肩走下去。"
+            "余生漫漫，我想和你并肩走下去。" // 稍微缩短了句子以便快速进入高潮
         ];
+
+        const javaCodeStr = 
+`public class OurStory {
+    public static void main(String[] args) {
+        if (meet("小博")) {
+            System.out.println("以前不信永远，直到遇见你。");
+            System.out.println("小博，我爱你！");
+        }
+    }
+}
+
+> [运行成功] 正在生成浪漫协议...`;
 
         let viewCount = 0; 
         let hasStarted = false;
+        let isFinalStage = false; // 控制终极特效的开关
         let audioCtx, analyser, dataArray, currentBass = 0;
 
         const loginScreen = document.getElementById('login-screen');
         const startScreen = document.getElementById('start-screen');
         const textScreen = document.getElementById('text-screen');
+        const javaTerminal = document.getElementById('java-terminal');
         const finalScreen = document.getElementById('final-screen');
         const replayPrompt = document.getElementById('replay-prompt');
         const bgm = document.getElementById('bgm');
@@ -263,49 +214,42 @@
         const pwdError = document.getElementById('pwd-error');
 
         document.getElementById('pwd-btn').onclick = () => {
-    if (document.getElementById('pwd-input').value === CORRECT_PASSWORD) {
-        loginScreen.style.opacity = '0';
-        setTimeout(() => {
-            loginScreen.style.display = 'none';
-            startScreen.style.display = 'block';
-            setTimeout(() => {
-                startScreen.style.opacity = '1';
-                // 这里不再有 drawing 动画，直接展示静止的信封
-            }, 100);
-        }, 1000);
-    } else {
-        pwdError.style.opacity = '1';
-        setTimeout(() => pwdError.style.opacity = '0', 2000);
-    }
-};
+            if (document.getElementById('pwd-input').value === CORRECT_PASSWORD) {
+                loginScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loginScreen.style.display = 'none';
+                    startScreen.style.display = 'block';
+                    setTimeout(() => startScreen.style.opacity = '1', 100);
+                }, 1000);
+            } else {
+                pwdError.style.opacity = '1';
+                setTimeout(() => pwdError.style.opacity = '0', 2000);
+            }
+        };
 
-        // 回车键支持
         document.getElementById('pwd-input').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') document.getElementById('pwd-btn').click();
         });
 
         startScreen.onclick = () => {
-    if(hasStarted) return;
-    hasStarted = true;
+            if(hasStarted) return;
+            hasStarted = true;
+            document.querySelector('.envelope-wrapper').classList.add('open');
+            document.getElementById('click-hint').classList.remove('show');
+            document.getElementById('click-hint').style.opacity = '0';
 
-    // 触发信封开启动画
-    document.querySelector('.envelope-wrapper').classList.add('open');
-    document.getElementById('click-hint').classList.remove('show');
-    document.getElementById('click-hint').style.opacity = '0';
-
-    // 等信封开启动画播完再进入打字机
-    setTimeout(() => {
-        if(!audioCtx) initAudio();
-        bgm.play();
-        startScreen.style.opacity = '0';
-        setTimeout(() => {
-            startScreen.style.display = 'none';
-            textScreen.style.display = 'block';
-            initParticles();
-            runTypewriter();
-        }, 1000);
-    }, 1500); // 1.5秒是给翻开和抽出信纸留的时间
-};
+            setTimeout(() => {
+                if(!audioCtx) initAudio();
+                bgm.play();
+                startScreen.style.opacity = '0';
+                setTimeout(() => {
+                    startScreen.style.display = 'none';
+                    textScreen.style.display = 'block';
+                    initParticles();
+                    runTypewriter();
+                }, 1000);
+            }, 1500); 
+        };
 
         function initAudio() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -316,19 +260,20 @@
             dataArray = new Uint8Array(analyser.frequencyBinCount);
         }
 
-        // 打字机逻辑重构：字符逐个插入 DOM，光标自然跟随
+        let currentLine = 0;
         function runTypewriter() {
             if (currentLine >= storyLines.length) {
                 textScreen.style.opacity = '0';
-                setTimeout(showFinal, 1500);
+                setTimeout(() => {
+                    textScreen.style.display = 'none';
+                    runJavaTerminal();
+                }, 1000);
                 return;
             }
             
             textScreen.innerHTML = "";
             let chars = storyLines[currentLine].split('');
             let charIndex = 0;
-
-            // 初始化光标节点
             let cur = document.createElement('span');
             cur.className = 'typing-cursor';
             textScreen.appendChild(cur);
@@ -338,17 +283,11 @@
                     let s = document.createElement('span');
                     s.className = 'cinematic-char';
                     s.innerText = chars[charIndex];
-                    
-                    // 将字符插入到光标的前面
                     textScreen.insertBefore(s, cur);
-                    
-                    // 给浏览器留出一帧的时间渲染节点，然后再加渐现动画
                     setTimeout(() => s.classList.add('show'), 20);
-                    
                     charIndex++;
                     setTimeout(typeNextChar, 150);
                 } else {
-                    // 当前行打完，停留后进入下一行
                     setTimeout(() => {
                         textScreen.style.opacity = '0';
                         setTimeout(() => {
@@ -359,32 +298,69 @@
                     }, 2000);
                 }
             }
-
             typeNextChar();
         }
 
-        let currentLine = 0;
+        function runJavaTerminal() {
+            javaTerminal.style.display = 'block';
+            setTimeout(() => javaTerminal.style.opacity = '1', 50);
+
+            let index = 0;
+            javaTerminal.innerHTML = "";
+            let cursor = document.createElement('span');
+            cursor.className = 'terminal-cursor';
+            javaTerminal.appendChild(cursor);
+
+            function typeTerminal() {
+                if (index < javaCodeStr.length) {
+                    let char = javaCodeStr.charAt(index);
+                    let span = document.createElement('span');
+                    
+                    // 简易代码高亮处理
+                    if (javaCodeStr.substring(index).startsWith('public') || javaCodeStr.substring(index).startsWith('class') || javaCodeStr.substring(index).startsWith('static') || javaCodeStr.substring(index).startsWith('void') || javaCodeStr.substring(index).startsWith('if')) {
+                        span.style.color = '#cc7832';
+                    } else if (char === '"') {
+                        span.style.color = '#6a8759';
+                    }
+                    
+                    span.innerText = char;
+                    javaTerminal.insertBefore(span, cursor);
+                    index++;
+                    // 模拟敲代码的极快速度
+                    setTimeout(typeTerminal, char === '\n' ? 150 : 20);
+                } else {
+                    // 代码敲完，稍微停留后碎裂进入最终高潮
+                    setTimeout(() => {
+                        javaTerminal.style.transform = 'scale(1.1)';
+                        javaTerminal.style.opacity = '0';
+                        javaTerminal.style.filter = 'blur(10px)';
+                        setTimeout(showFinal, 800);
+                    }, 1500);
+                }
+            }
+            typeTerminal();
+        }
+
         function showFinal() {
-            textScreen.style.display = 'none';
+            javaTerminal.style.display = 'none';
             finalScreen.style.display = 'flex';
             document.getElementById('memory-wall').style.opacity = '1';
             
+            // 触发粒子心形汇聚
+            isFinalStage = true; 
+
             setTimeout(() => {
                 finalScreen.style.opacity = '1';
                 document.getElementById('final-p1').style.opacity = '1';
                 document.getElementById('final-p2').style.opacity = '1';
                 document.getElementById('final-core').style.opacity = '1';
-                document.getElementById('final-core').style.transform = 'scale(1)';
+                // transform 的缩放交给 draw() 里的音频动态控制
             }, 100);
 
-            // 只有第一次看的时候显示重播按钮
             if (viewCount === 0) {
                 replayPrompt.style.display = 'block';
-                setTimeout(() => replayPrompt.style.opacity = '1', 5000);
-            } else {
-                replayPrompt.style.display = 'none';
+                setTimeout(() => replayPrompt.style.opacity = '1', 6000);
             }
-            
             setInterval(updateTimer, 1000);
         }
 
@@ -396,12 +372,12 @@
             document.getElementById('time-s').innerText = Math.floor((diff / 1000) % 60);
         }
 
-        // 重播
         replayPrompt.onclick = () => {
-            viewCount++; // 增加观看次数
+            viewCount++; 
             finalScreen.style.opacity = '0';
             document.getElementById('memory-wall').style.opacity = '0';
             replayPrompt.style.opacity = '0';
+            isFinalStage = false;
             setTimeout(() => {
                 finalScreen.style.display = 'none';
                 replayPrompt.style.display = 'none';
@@ -409,18 +385,48 @@
                 hasStarted = false;
                 startScreen.style.display = 'block';
                 startScreen.style.opacity = '1';
+                javaTerminal.style.transform = 'scale(1)';
+                javaTerminal.style.filter = 'blur(0)';
+                // 重置粒子位置
+                particles.forEach(p => {
+                    p.x = Math.random() * canvas.width;
+                    p.y = Math.random() * canvas.height;
+                });
             }, 1000);
         };
 
         // Canvas 系统
         let particles = [];
+        let heartTargets = []; // 存储爱心最终坐标
+
         function initParticles() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            for(let i=0; i<80; i++) particles.push({
-                x: Math.random()*canvas.width, y: Math.random()*canvas.height,
-                vx: Math.random()-0.5, vy: Math.random()-0.5, size: Math.random()*2+1
-            });
+            particles = [];
+            heartTargets = [];
+            
+            let particleCount = window.innerWidth < 600 ? 60 : 120; // 移动端稍微减少粒子
+
+            for(let i=0; i < particleCount; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width, 
+                    y: Math.random() * canvas.height,
+                    vx: Math.random() - 0.5, 
+                    vy: Math.random() - 0.5, 
+                    size: Math.random() * 2 + 1
+                });
+
+                // 预先计算心形公式坐标
+                let t = (i / particleCount) * Math.PI * 2;
+                let hx = 16 * Math.pow(Math.sin(t), 3);
+                let hy = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+                // 放大系数
+                let scale = canvas.width < 600 ? 10 : 18; 
+                heartTargets.push({
+                    x: canvas.width/2 + hx * scale,
+                    y: canvas.height/2 + hy * scale - 20
+                });
+            }
             draw();
         }
 
@@ -430,27 +436,52 @@
             
             if(analyser) {
                 analyser.getByteFrequencyData(dataArray);
-                currentBass = dataArray[0] / 255;
+                // 取低音部分做均值计算
+                let sum = 0;
+                for(let i=0; i<10; i++) sum += dataArray[i];
+                currentBass = (sum / 10) / 255; 
             }
 
-            particles.forEach(p => {
-                p.x += p.vx * (1 + currentBass);
-                p.y += p.vy * (1 + currentBass);
-                if(p.x<0 || p.x>canvas.width) p.vx*=-1;
-                if(p.y<0 || p.y>canvas.height) p.vy*=-1;
+            // 音频驱动 final-core
+            if (isFinalStage) {
+                const finalCore = document.getElementById('final-core');
+                if (finalCore) {
+                    // 让文字跟着低音缩放和发光
+                    let scale = 1 + currentBass * 0.15;
+                    let glow = 20 + currentBass * 40;
+                    finalCore.style.transform = `scale(${scale})`;
+                    finalCore.style.textShadow = `0 0 ${glow}px rgba(255, 51, 75, ${0.6 + currentBass * 0.4})`;
+                }
+            }
+
+            particles.forEach((p, index) => {
+                if (isFinalStage) {
+                    // 最终阶段：粒子向心形坐标聚拢
+                    p.x += (heartTargets[index].x - p.x) * 0.05;
+                    p.y += (heartTargets[index].y - p.y) * 0.05;
+                    p.size = 2 + currentBass * 4; // 粒子随音乐跳动
+                    ctx.fillStyle = `rgba(255, 71, 87, ${0.5 + currentBass})`;
+                } else {
+                    // 正常游荡阶段
+                    p.x += p.vx * (1 + currentBass * 2);
+                    p.y += p.vy * (1 + currentBass * 2);
+                    if(p.x<0 || p.x>canvas.width) p.vx*=-1;
+                    if(p.y<0 || p.y>canvas.height) p.vy*=-1;
+                    ctx.fillStyle = `rgba(255, ${200 - currentBass*100}, ${200 - currentBass*100}, 0.8)`;
+                }
                 
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size + currentBass*3, 0, Math.PI*2);
-                ctx.fillStyle = `rgba(255, ${200 - currentBass*100}, ${200 - currentBass*100}, 0.8)`;
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
                 ctx.fill();
             });
 
-            // 连线
-            ctx.strokeStyle = 'rgba(255,71,87,0.05)';
+            // 连线逻辑
+            ctx.strokeStyle = isFinalStage ? 'rgba(255,71,87,0.15)' : 'rgba(255,71,87,0.05)';
             for(let i=0; i<particles.length; i++) {
                 for(let j=i+1; j<particles.length; j++) {
                     let d = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
-                    if(d < 100) {
+                    let threshold = isFinalStage ? 40 : 100; // 聚拢后缩短连线判定距离
+                    if(d < threshold) {
                         ctx.beginPath();
                         ctx.moveTo(particles[i].x, particles[i].y);
                         ctx.lineTo(particles[j].x, particles[j].y);
@@ -460,6 +491,13 @@
             }
             requestAnimationFrame(draw);
         }
+
+        // 响应窗口变化
+        window.addEventListener('resize', () => {
+            if(hasStarted && !isFinalStage) {
+                initParticles(); // 没到最终阶段才重新计算随机分布
+            }
+        });
     </script>
 </body>
 </html>
