@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>toXiaobo</title>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Zhi+Mang+Xing&display=swap" rel="stylesheet">
+    
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -99,20 +101,25 @@
             position: absolute; top: 50%; left: 50%; width: 0; height: 0;
         }
         .meteor {
-            position: absolute; width: 400px; height: 3px;
-            /* 彩色拖尾：从透明过度到蓝、紫、红 */
-            background: linear-gradient(to right, rgba(0,0,0,0) 0%, #00d2ff 30%, #9d4edd 60%, #ff0844 100%);
+            position: absolute; 
+            width: 400px; 
+            height: 6px; 
+            right: 0;  /* 关键修复：让流星的最右侧（头部）对齐屏幕正中心 */
+            top: -3px; /* 关键修复：高度6px，向上偏移3px实现完美的垂直居中 */
+            /* 彩虹拖尾：从透明过渡到紫、蓝、绿、黄、红 */
+            background: linear-gradient(to right, rgba(0,0,0,0) 0%, #8a2be2 20%, #4169e1 40%, #00ff7f 60%, #ffd700 80%, #ff0000 100%);
             transform-origin: right center; 
-            animation: meteorStrike 2.5s ease-out forwards; /* 时间变长，速度变缓 */
+            animation: meteorStrike 2.5s ease-out forwards; 
         }
-        /* 流星头部高光 */
+
+        /* 流星头部高光保持不变，增加视觉冲击力 */
         .meteor::after {
-            content: ""; position: absolute; top: -4px; right: -5px; width: 11px; height: 11px; border-radius: 50%;
+            content: ""; position: absolute; top: -3px; right: -5px; width: 12px; height: 12px; border-radius: 50%;
             background: #fff; box-shadow: 0 0 20px 8px #fff, 0 0 40px 15px #ff0844;
         }
+
         @keyframes meteorStrike {
-            /* 先旋转135度指向左下，然后向"后"（右上）平移 150vmax 确保在屏幕外 */
-            0% { transform: rotate(135deg) translateX(150vmax); opacity: 0; }
+            0% { transform: rotate(135deg) translateX(-150vmax); opacity: 0; }
             15% { opacity: 1; }
             100% { transform: rotate(135deg) translateX(0); opacity: 1; }
         }
@@ -147,15 +154,22 @@
             display: none; width: 90%; text-align: center; z-index: 10; position: absolute;
             flex-direction: column; justify-content: center; align-items: center; opacity: 0;
             transition: opacity 1s ease;
-            /* 新增下面这行，确保在手机端完美居中 */
+            /* 确保在手机端完美居中 */
             top: 50%; left: 50%; transform: translate(-50%, -50%);
         }
         .final-pre { font-size: 20px; color: #ffe6e6; opacity: 0; margin-bottom: 20px; transition: opacity 2s ease 0.5s;}
+        
         .final-core {
-            font-size: clamp(40px, 12vw, 80px); font-weight: bold; color: #ff334b; font-family: 'Dancing Script', cursive; 
+            font-size: clamp(40px, 12vw, 80px); 
+            color: #ff334b; 
+            /* 优先使用引入的手写体 */
+            font-family: 'Zhi Mang Xing', 'Kaiti SC', 'STKaiti', 'KaiTi', '楷体', cursive; 
             text-shadow: 0 0 20px rgba(255, 51, 75, 0.6);
-            opacity: 0; transform: scale(0.8); transition: opacity 2s ease 1s, transform 0.1s ease;
+            opacity: 0; 
+            transform: scale(0.8); 
+            transition: opacity 2s ease 1s, transform 0.1s ease;
         }
+
         #timer-box { margin-top: 30px; font-size: 16px; color: #ffcccc; opacity: 0; transition: opacity 1.5s ease 2.5s; }
         #timer-box span { font-weight: bold; color: #fff; font-size: 20px; }
         
@@ -207,7 +221,6 @@
 
     <div id="final-screen">
         <div class="final-pre" id="final-p1">往后余生，风雪是你，平淡是你，万般温柔，也全是你。</div>
-        <!--<div class="final-pre" id="final-p2">我的宝宝，我的老婆。</div>-->
         <div class="final-core" id="final-core">我会一直在，只爱你。</div>
         <div id="timer-box">相伴已走过 <span id="time-d">0</span>天 <span id="time-h">0</span>时 <span id="time-m">0</span>分 <span id="time-s">0</span>秒</div>
     </div>
@@ -219,7 +232,7 @@
         const START_DATE = new Date("2026-02-10T00:00:00"); 
         const storyLines = [
             "宝宝，展信佳。",
-            <!--"宝宝，回想起来，我们的相遇真的很猝不及防。",
+            "宝宝，回想起来，我们的相遇真的很猝不及防。",
             "寒假快要结束的那段日子，偶然相识，第一次见面牵手，第二天相拥亲吻，一切都快得猝不及防，却又无比顺理成章。",
             "原本只是无聊消遣的一次碰面，却让我遇见了这辈子最想好好留住的人。",
             "我们隔着江苏与河南的距离，是异地，相差五岁，都是不善表达却心思细腻的人，一个ESTJ，一个ISTJ，慢慢磨合，慢慢依赖。",
@@ -238,7 +251,7 @@
             "我不想只陪你走一程，我想和你慢慢来，岁岁年年，长久相伴。",
             "往后的日子，我会一直好好喜欢你，好好偏爱你，包容你的小脾气，接住你的所有情绪。",
             "不管距离多远，不管未来有多少未知，我都会坚定选择你，一次，次次，永远。",
-            "始于初见，忠于心动，终于余生。",-->
+            "始于初见，忠于心动，终于余生。",
         ];
 
         let viewCount = 0; 
@@ -393,7 +406,6 @@
             setTimeout(() => {
                 finalScreen.style.opacity = '1';
                 if(document.getElementById('final-p1')) document.getElementById('final-p1').style.opacity = '1';
-                // 增加判断：如果HTML里注释掉了p2，这里就不会执行，防止报错崩溃
                 if(document.getElementById('final-p2')) document.getElementById('final-p2').style.opacity = '1';
                 if(document.getElementById('final-core')) document.getElementById('final-core').style.opacity = '1';
             }, 100);
