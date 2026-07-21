@@ -2,9 +2,15 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8" />
-    <title>AI 选择题生成器</title>
+    <title>AI 综合出题系统</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- 引入 Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入 PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
     <style>
         /* iOS 风格基础样式 */
         :root {
@@ -45,28 +51,83 @@
             margin-bottom: 24px;
         }
 
-        .input-panel {
+        /* 设置区样式 */
+        .tab-container {
             display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
+            background: var(--ios-bg);
+            border-radius: 8px;
+            padding: 4px;
         }
 
-        .input-panel input {
+        .tab {
             flex: 1;
+            text-align: center;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--ios-gray);
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--ios-card);
+            color: var(--ios-text);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-group input[type="text"], .input-group input[type="file"] {
+            width: 100%;
+            box-sizing: border-box;
             padding: 12px 16px;
             font-size: 16px;
             background: var(--ios-bg);
             border: none;
             border-radius: 12px;
             outline: none;
-            transition: box-shadow 0.2s;
         }
 
-        .input-panel input:focus {
-            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
+        .config-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .config-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: var(--ios-bg);
+            padding: 10px;
+            border-radius: 12px;
+        }
+
+        .config-item label {
+            font-size: 12px;
+            color: var(--ios-gray);
+            margin-bottom: 6px;
+        }
+
+        .config-item input {
+            width: 50px;
+            text-align: center;
+            border: none;
+            background: var(--ios-card);
+            border-radius: 6px;
+            padding: 6px;
+            font-size: 16px;
         }
 
         button {
+            width: 100%;
             padding: 12px 20px;
             font-size: 16px;
             font-weight: 600;
@@ -91,7 +152,7 @@
 
         #status {
             text-align: center;
-            margin-bottom: 16px;
+            margin-top: 16px;
             font-size: 14px;
             color: var(--ios-gray);
             min-height: 20px;
@@ -100,15 +161,28 @@
         .hidden { display: none !important; }
 
         /* 答题区样式 */
-        #quizArea {
-            animation: fadeIn 0.4s ease;
+        #quizArea { animation: fadeIn 0.4s ease; }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
         }
 
         #progress {
             font-size: 14px;
             color: var(--ios-gray);
             font-weight: 500;
-            margin-bottom: 8px;
+        }
+
+        #questionTypeBadge {
+            font-size: 12px;
+            padding: 4px 8px;
+            background: #E5E5EA;
+            border-radius: 6px;
+            color: var(--ios-text);
+            font-weight: 600;
         }
 
         #questionText {
@@ -118,6 +192,7 @@
             margin-bottom: 20px;
         }
 
+        /* 选项与输入框 */
         #options .option-item {
             padding: 14px 16px;
             background: var(--ios-bg);
@@ -129,7 +204,6 @@
             transition: all 0.2s ease;
         }
 
-        /* 交互状态 */
         #options .option-item:hover:not(.locked) {
             background: #E5E5EA;
         }
@@ -150,15 +224,40 @@
             border-color: var(--ios-red) !important;
             color: #8E0000;
         }
+        
+        .fill-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 14px 16px;
+            font-size: 16px;
+            border-radius: 12px;
+            border: 2px solid #E5E5EA;
+            outline: none;
+            margin-bottom: 10px;
+        }
+        
+        .fill-input:focus { border-color: var(--ios-blue); }
+
+        #essayInput {
+            width: 100%;
+            box-sizing: border-box;
+            height: 120px;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 12px;
+            border: 2px solid #E5E5EA;
+            resize: none;
+            outline: none;
+            margin-bottom: 10px;
+            font-family: inherit;
+        }
+        
+        #essayInput:focus { border-color: var(--ios-blue); }
 
         .action-buttons {
             display: flex;
             gap: 12px;
             margin-top: 24px;
-        }
-
-        .action-buttons button {
-            flex: 1;
         }
 
         #explanation {
@@ -192,61 +291,170 @@
 </head>
 <body>
 <div class="container">
-    <h1>知识自测</h1>
+    <h1>知识自测与分析</h1>
 
-    <div class="input-panel" id="inputPanel">
-        <input id="topicInput" placeholder="例如：Java集合框架底层原理">
+    <!-- 设置面板 -->
+    <div id="setupPanel">
+        <div class="tab-container">
+            <div class="tab active" id="tabTopic" onclick="switchTab('topic')">知识点出题</div>
+            <div class="tab" id="tabPDF" onclick="switchTab('pdf')">PDF 文档出题</div>
+        </div>
+
+        <div class="input-group" id="groupTopic">
+            <input type="text" id="topicInput" placeholder="输入知识点，例如：Java多线程原理">
+        </div>
+        <div class="input-group hidden" id="groupPDF">
+            <input type="file" id="pdfUpload" accept="application/pdf">
+        </div>
+
+        <div class="config-row">
+            <div class="config-item">
+                <label>单选题数</label>
+                <input type="number" id="numSingle" value="2" min="0">
+            </div>
+            <div class="config-item">
+                <label>填空题数</label>
+                <input type="number" id="numFill" value="2" min="0">
+            </div>
+            <div class="config-item">
+                <label>答题(主观)</label>
+                <input type="number" id="numEssay" value="1" min="0">
+            </div>
+        </div>
+
         <button id="generateBtn">生成题目</button>
+        <div id="status"></div>
     </div>
 
-    <div id="status"></div>
-
+    <!-- 答题面板 -->
     <div id="quizArea" class="hidden">
-        <div id="progress"></div>
+        <div class="header-row">
+            <div id="progress"></div>
+            <div id="questionTypeBadge">单选题</div>
+        </div>
         <div id="questionText"></div>
+        
         <div id="options"></div>
         
         <div class="action-buttons">
-            <button id="submitBtn" disabled>提交答案</button>
+            <button id="submitBtn">提交答案</button>
             <button id="nextBtn" class="hidden">下一题</button>
         </div>
         
         <div id="explanation"></div>
     </div>
 
+    <!-- 结果分析面板 -->
     <div id="resultArea" class="hidden">
-        <h2>掌握情况分析</h2>
+        <h2>做题情况分析</h2>
         <div class="chart-container">
             <canvas id="resultChart"></canvas>
         </div>
-        <p id="scoreText" style="font-size: 18px; font-weight: 600; margin-bottom: 24px;"></p>
+        <p id="scoreText" style="font-size: 18px; font-weight: 600; margin-bottom: 8px;"></p>
+        <p id="essayStatText" style="font-size: 14px; color: var(--ios-gray); margin-bottom: 24px;"></p>
         <button onclick="location.reload()">重新开始</button>
     </div>
 </div>
 
 <script>
 // ===========================
-// 1. 填入你的 DeepSeek 官方 API Key
+// API 配置[cite: 1]
 // ===========================
 const API_KEY = "sk-7b94fcd7ab1f4e43b1960e900f88ab54";
-
-// 2. 官方模型 ID
 const MODEL_ID = "deepseek-v4-flash"; 
 // ===========================
 
+let currentMode = 'topic'; // 'topic' 或 'pdf'
 let questions = [];
 let currentIndex = 0;
-let correctCount = 0;
+let objCorrectCount = 0; // 客观题(单选+填空)答对数量
+let objTotalCount = 0;   // 客观题总数
+let essayTotalCount = 0; // 主观题总数
 
-async function generateQuestions(topic) {
+function switchTab(mode) {
+    currentMode = mode;
+    if (mode === 'topic') {
+        document.getElementById('tabTopic').classList.add('active');
+        document.getElementById('tabPDF').classList.remove('active');
+        document.getElementById('groupTopic').classList.remove('hidden');
+        document.getElementById('groupPDF').classList.add('hidden');
+    } else {
+        document.getElementById('tabPDF').classList.add('active');
+        document.getElementById('tabTopic').classList.remove('active');
+        document.getElementById('groupPDF').classList.remove('hidden');
+        document.getElementById('groupTopic').classList.add('hidden');
+    }
+}
+
+async function extractTextFromPDF(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let text = "";
+    const maxPages = Math.min(pdf.numPages, 15);
+    for (let i = 1; i <= maxPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map(item => item.str).join(" ") + "\n";
+    }
+    return text.substring(0, 8000); 
+}
+
+document.getElementById("generateBtn").onclick = async () => {
     const status = document.getElementById("status");
     const generateBtn = document.getElementById("generateBtn");
-    const topicInput = document.getElementById("topicInput");
     
+    let sourceContent = "";
+
+    if (currentMode === 'topic') {
+        sourceContent = document.getElementById("topicInput").value.trim();
+        if (!sourceContent) return alert("请先输入一个知识点关键词。");
+        sourceContent = "知识点：" + sourceContent;
+    } else {
+        const fileInput = document.getElementById("pdfUpload");
+        if (!fileInput.files.length) return alert("请先上传一个 PDF 文件。");
+        status.innerText = "正在解析 PDF 内容...";
+        try {
+            const pdfText = await extractTextFromPDF(fileInput.files[0]);
+            sourceContent = "参考资料：\n" + pdfText;
+        } catch (e) {
+            return alert("PDF解析失败：" + e.message);
+        }
+    }
+
+    const nSingle = parseInt(document.getElementById("numSingle").value) || 0;
+    const nFill = parseInt(document.getElementById("numFill").value) || 0;
+    const nEssay = parseInt(document.getElementById("numEssay").value) || 0;
+    
+    if (nSingle + nFill + nEssay === 0) return alert("题目总数不能为0");
+
     status.style.color = "var(--ios-gray)";
-    status.innerText = "正在呼叫 DeepSeek 生成题目，请稍候...";
+    status.innerText = "正在呼叫 AI 生成题目，请稍候...";
     generateBtn.disabled = true;
-    topicInput.disabled = true;
+
+    const systemPrompt = "你是一个严谨的计算机专业出题老师。请严格输出 JSON 格式，不要包含任何 markdown 代码块标识符。包含一个 'questions' 数组。"; //[cite: 1]
+    
+    const userPrompt = `
+请根据以下内容生成题目。
+${sourceContent}
+
+【出题要求】
+需要生成的题型及数量：单选题 ${nSingle} 道，填空题 ${nFill} 道，主观答题 ${nEssay} 道。
+
+必须严格输出以下 JSON 结构：
+{
+  "questions": [
+    {
+      "type": "single", // "single"(单选), "fill"(填空), "essay"(主观答题)
+      "question": "题干内容。若是填空题，请用 ___ 表示需要填空的位置。",
+      "options": ["选项A", "选项B", "选项C", "选项D"], // 若是 fill 或 essay，此字段必须为空数组 []
+      "answer_index": 0, // 单选题正确答案的索引。若是 fill 或 essay，请填入 -1
+      "answer_text": "标准答案文本。若是单选请留空；若是填空题，请给出填空的精确标准答案；若是主观题，请给出参考答案。",
+      "explanation": "简要解析或解析过程"
+    }
+  ]
+}
+注意：请严格确保 output 为合法 JSON 格式，不要多余字符。
+    `.trim();
 
     try {
         const res = await fetch("https://api.deepseek.com/chat/completions", {
@@ -257,60 +465,37 @@ async function generateQuestions(topic) {
             },
             body: JSON.stringify({
                 model: MODEL_ID,
-                // 强制要求返回 JSON 对象，提升稳定性
                 response_format: { type: "json_object" }, 
                 messages: [
-                    { 
-                        role: "system", 
-                        content: "你是一个严谨的计算机专业出题老师。请输出 JSON 格式。包含一个 'questions' 数组。" 
-                    },
-                    { 
-                        role: "user", 
-                        content: `
-请围绕“${topic}”生成 5 道单选题（为加快速度，此处以5题为例，你可自行改为10题）。
-必须严格输出以下 JSON 格式，不要包含任何 markdown 代码块标识符，直接输出纯 JSON：
-{
-  "questions": [
-    {
-      "question": "题干内容",
-      "options": ["选项 A", "选项 B", "选项 C", "选项 D"],
-      "answer_index": 0,
-      "explanation": "简要解析为什么选这个"
-    }
-  ]
-}`.trim() }
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt }
                 ]
             })
         });
 
         const data = await res.json();
-
-        if (!res.ok) {
-            throw new Error(data?.error?.message || ("HTTP " + res.status));
-        }
+        if (!res.ok) throw new Error(data?.error?.message || ("HTTP " + res.status));
 
         const content = (data.choices?.[0]?.message?.content || "").trim();
+        let parsed = JSON.parse(content);
 
-        let parsed;
-        try {
-            parsed = JSON.parse(content);
-        } catch (e) {
-            console.error("模型返回内容：", content);
-            throw new Error("模型返回的内容不是合法 JSON。");
-        }
-
-        if (!parsed.questions || !Array.isArray(parsed.questions) || parsed.questions.length === 0) {
+        if (!parsed.questions || parsed.questions.length === 0) {
             throw new Error("JSON 中没有有效的 questions 字段。");
         }
 
         questions = parsed.questions;
         currentIndex = 0;
-        correctCount = 0;
+        objCorrectCount = 0;
+        objTotalCount = 0;
+        essayTotalCount = 0;
 
-        document.getElementById("inputPanel").classList.add("hidden");
-        status.innerText = "";
+        questions.forEach(q => {
+            if (q.type === 'single' || q.type === 'fill') objTotalCount++;
+            else if (q.type === 'essay') essayTotalCount++;
+        });
+
+        document.getElementById("setupPanel").classList.add("hidden");
         document.getElementById("quizArea").classList.remove("hidden");
-        
         renderQuestion();
 
     } catch (err) {
@@ -318,91 +503,120 @@ async function generateQuestions(topic) {
         status.style.color = "var(--ios-red)";
         status.innerText = "生成失败：" + err.message;
         generateBtn.disabled = false;
-        topicInput.disabled = false;
     }
-}
+};
 
 function renderQuestion() {
     const q = questions[currentIndex];
+    const submitBtn = document.getElementById("submitBtn");
     
-    // 重置 UI 状态
-    document.getElementById("submitBtn").classList.remove("hidden");
-    document.getElementById("submitBtn").disabled = true; // 没选之前禁止提交
+    submitBtn.classList.remove("hidden");
+    submitBtn.disabled = true; // 默认禁用，等用户操作后启用
+    
     document.getElementById("nextBtn").classList.add("hidden");
     
     const expDiv = document.getElementById("explanation");
     expDiv.style.display = "none";
-    expDiv.innerText = "";
 
     document.getElementById("progress").innerText = `第 ${currentIndex + 1} / ${questions.length} 题`;
+    
+    const typeMap = { 'single': '单选题', 'fill': '填空题', 'essay': '主观答题' };
+    document.getElementById("questionTypeBadge").innerText = typeMap[q.type] || '未知题型';
     document.getElementById("questionText").innerText = q.question;
 
     const optionsDiv = document.getElementById("options");
     optionsDiv.innerHTML = "";
 
-    q.options.forEach((op, idx) => {
-        const div = document.createElement("div");
-        div.className = "option-item";
-        div.innerText = op;
-        div.onclick = () => {
-            // 如果已经提交过了，锁定选项不可改
-            if (q.submitted) return; 
-
-            document.querySelectorAll(".option-item")
-                .forEach(x => x.classList.remove("selected"));
-            div.classList.add("selected");
-            q.selected = idx;
-            document.getElementById("submitBtn").disabled = false;
+    if (q.type === 'single') {
+        q.options.forEach((op, idx) => {
+            const div = document.createElement("div");
+            div.className = "option-item";
+            div.innerText = op;
+            div.onclick = () => {
+                if (q.submitted) return; 
+                document.querySelectorAll(".option-item").forEach(x => x.classList.remove("selected"));
+                div.classList.add("selected");
+                q.userSelected = idx;
+                submitBtn.disabled = false;
+            };
+            optionsDiv.appendChild(div);
+        });
+    } else if (q.type === 'fill') {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.id = "fillInput";
+        input.className = "fill-input";
+        input.placeholder = "请输入你的答案...";
+        input.disabled = q.submitted ? true : false;
+        input.oninput = () => {
+            submitBtn.disabled = (input.value.trim().length === 0);
         };
-        optionsDiv.appendChild(div);
-    });
+        optionsDiv.appendChild(input);
+    } else if (q.type === 'essay') {
+        const textarea = document.createElement("textarea");
+        textarea.id = "essayInput";
+        textarea.placeholder = "请在此输入你的解答过程或思路...";
+        textarea.disabled = q.submitted ? true : false;
+        textarea.oninput = () => {
+            submitBtn.disabled = (textarea.value.trim().length === 0);
+        };
+        optionsDiv.appendChild(textarea);
+    }
 }
 
-// 提交答案按钮逻辑
 document.getElementById("submitBtn").onclick = () => {
     const q = questions[currentIndex];
-    if (q.selected === undefined) return;
+    q.submitted = true; 
 
-    q.submitted = true; // 标记已提交
+    const expDiv = document.getElementById("explanation");
 
-    const optionDivs = document.querySelectorAll(".option-item");
-    optionDivs.forEach((div, i) => {
-        div.classList.add("locked"); // 加上锁定样式以取消 hover 效果
+    if (q.type === 'single') {
+        const optionDivs = document.querySelectorAll(".option-item");
         
-        if (i === q.answer_index) {
-            div.classList.add("correct"); // 正确答案标绿
-        } else if (i === q.selected && q.selected !== q.answer_index) {
-            div.classList.add("incorrect"); // 选错的标红
-        } else {
-            // 其他未选且错误的选项变淡
-            div.style.opacity = "0.5";
+        if (q.userSelected === q.answer_index) {
+            objCorrectCount++;
         }
-    });
 
-    // 统计正确率
-    if (q.selected === q.answer_index) {
-        correctCount++;
+        optionDivs.forEach((div, i) => {
+            div.classList.add("locked"); 
+            if (i === q.answer_index) {
+                div.classList.add("correct");
+            } else if (i === q.userSelected && q.userSelected !== q.answer_index) {
+                div.classList.add("incorrect");
+            } else {
+                div.style.opacity = "0.5";
+            }
+        });
+        
+        expDiv.innerHTML = `<strong>解析：</strong><br>${q.explanation}`;
+        
+    } else if (q.type === 'fill') {
+        const input = document.getElementById("fillInput");
+        input.disabled = true;
+        const userAnswer = input.value.trim();
+        
+        // 简单匹配：输入内容与标准答案一致
+        const isCorrect = (userAnswer === q.answer_text);
+        if (isCorrect) objCorrectCount++;
+
+        input.style.borderColor = isCorrect ? "var(--ios-green)" : "var(--ios-red)";
+        input.style.backgroundColor = isCorrect ? "#E8F8F0" : "#FFEBEE";
+
+        expDiv.innerHTML = `<strong>你的答案：</strong>${userAnswer}<br><strong>标准答案：</strong>${q.answer_text}<br><br><strong>解析：</strong><br>${q.explanation}`;
+
+    } else if (q.type === 'essay') {
+        document.getElementById("essayInput").disabled = true;
+        expDiv.innerHTML = `<strong>参考答案：</strong><br>${q.answer_text}<br><br><strong>解析思路：</strong><br>${q.explanation}`;
     }
 
-    // 显示解析
-    const expDiv = document.getElementById("explanation");
-    expDiv.innerHTML = `<strong>解析：</strong><br>${q.explanation}`;
     expDiv.style.display = "block";
 
-    // 切换按钮
     document.getElementById("submitBtn").classList.add("hidden");
     const nextBtn = document.getElementById("nextBtn");
     nextBtn.classList.remove("hidden");
-    
-    // 如果是最后一题，按钮文字改为“查看结果”
-    if (currentIndex === questions.length - 1) {
-        nextBtn.innerText = "查看结果";
-    } else {
-        nextBtn.innerText = "下一题";
-    }
+    nextBtn.innerText = (currentIndex === questions.length - 1) ? "查看分析" : "下一题";
 };
 
-// 下一题/查看结果按钮逻辑
 document.getElementById("nextBtn").onclick = () => {
     if (currentIndex >= questions.length - 1) {
         showAnalysis();
@@ -412,57 +626,46 @@ document.getElementById("nextBtn").onclick = () => {
     renderQuestion();
 };
 
-// 渲染最终掌握情况分析
 function showAnalysis() {
     document.getElementById("quizArea").classList.add("hidden");
     document.getElementById("resultArea").classList.remove("hidden");
-    document.getElementById("status").innerText = "";
-
-    const total = questions.length;
-    const incorrectCount = total - correctCount;
-    const accuracy = Math.round((correctCount / total) * 100);
 
     const scoreText = document.getElementById("scoreText");
-    scoreText.innerText = `准确率：${accuracy}% (${correctCount}/${total})`;
-    if (accuracy >= 80) scoreText.style.color = "var(--ios-green)";
-    else if (accuracy >= 60) scoreText.style.color = "var(--ios-blue)";
-    else scoreText.style.color = "var(--ios-red)";
-
-    // 绘制 Chart.js 环形图
+    const essayStatText = document.getElementById("essayStatText");
     const ctx = document.getElementById('resultChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['答对', '答错'],
-            datasets: [{
-                data: [correctCount, incorrectCount],
-                backgroundColor: [
-                    '#34C759', // iOS Green
-                    '#FF3B30'  // iOS Red
-                ],
-                borderWidth: 0,
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            cutout: '70%',
-            plugins: {
-                legend: { position: 'bottom' }
-            }
-        }
-    });
-}
 
-document.getElementById("generateBtn").onclick = () => {
-    const topic = document.getElementById("topicInput").value.trim();
-    if (!topic) {
-        document.getElementById("status").style.color = "var(--ios-red)";
-        document.getElementById("status").innerText = "请先输入一个关键词。";
-        return;
+    if (objTotalCount > 0) {
+        const objIncorrect = objTotalCount - objCorrectCount;
+        const accuracy = Math.round((objCorrectCount / objTotalCount) * 100);
+        
+        scoreText.innerText = `客观题准确率：${accuracy}% (${objCorrectCount}/${objTotalCount})`;
+        if (accuracy >= 80) scoreText.style.color = "var(--ios-green)";
+        else if (accuracy >= 60) scoreText.style.color = "var(--ios-blue)";
+        else scoreText.style.color = "var(--ios-red)";
+
+        new Chart(ctx, { // 原代码使用了 Chart.js[cite: 1]
+            type: 'doughnut',
+            data: {
+                labels: ['答对', '答错'],
+                datasets: [{
+                    data: [objCorrectCount, objIncorrect],
+                    backgroundColor: ['#34C759', '#FF3B30'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: { responsive: true, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
+        });
+    } else {
+        scoreText.innerText = "本次测验未包含客观题（单选/填空）";
+        scoreText.style.color = "var(--ios-text)";
+        document.querySelector('.chart-container').style.display = 'none';
     }
-    generateQuestions(topic);
-};
+
+    essayStatText.innerText = essayTotalCount > 0 
+        ? `*包含 ${essayTotalCount} 道主观题（主观题不计入系统评分，请对照参考答案自行评估）` 
+        : "";
+}
 </script>
 </body>
 </html>
